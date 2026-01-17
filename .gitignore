@@ -2,5 +2,7 @@ venv/
 __pycache__/
 .env
 backend/.env
+backend/data/uploads/
 backend/temp_uploads/
 *.pyc
+.pytest_cache/
