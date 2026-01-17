@@ -2,10 +2,10 @@ import os
 import tempfile
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 def process_document_to_vector_store(uploaded_file):
     """
@@ -29,7 +29,7 @@ def process_document_to_vector_store(uploaded_file):
         texts = text_splitter.split_documents(documents)
 
         # Step 6: Embeddings Generation
-        embeddings = OpenAIEmbeddings()
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         
         # Step 7: Vector Store Creation
         vector_store = FAISS.from_documents(texts, embeddings)
@@ -44,7 +44,7 @@ def create_qa_chain(vector_store):
     """
     Step 10: Setup LLM Chain with the vector store retriever.
     """
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0)
     
     # Step 9: Prompt Engineering (Hidden in 'stuff' chain type default prompt, or can be customized)
     qa_chain = RetrievalQA.from_chain_type(
