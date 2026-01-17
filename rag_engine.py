@@ -7,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-def process_document_to_vector_store(uploaded_file):
+def process_document_to_vector_store(uploaded_file, progress_callback=None):
     """
     Step 4-7: Processes the PDF and returns a FAISS vector store.
     """
@@ -38,9 +38,12 @@ def process_document_to_vector_store(uploaded_file):
         vector_store = None
         
         total_chunks = len(texts)
-        print(f"Processing {total_chunks} chunks one by one...") 
         
         for i, text_chunk in enumerate(texts):
+            # Update progress callback
+            if progress_callback:
+                progress_callback(i + 1, total_chunks)
+                
             success = False
             retries = 3
             retry_delay = 30 # Start with 30s delay
@@ -57,11 +60,10 @@ def process_document_to_vector_store(uploaded_file):
                         
                     success = True
                     # Small delay after each successful add
-                    time.sleep(1) 
+                    time.sleep(0.5) 
                     
                 except Exception as e:
                     if "429" in str(e):
-                        print(f"Hit rate limit on chunk {i+1}. Retrying in {retry_delay}s...")
                         time.sleep(retry_delay) 
                         retry_delay *= 2 # Exponential backoff: 30 -> 60 -> 120
                         retries -= 1
@@ -84,10 +86,11 @@ def create_qa_chain(vector_store):
     # Using gemini-flash-latest as it is confirmed available in the user's list
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0)
     
-    # Step 9: Prompt Engineering (Hidden in 'stuff' chain type default prompt, or can be customized)
+    # Step 9: Prompt Engineering
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
-        retriever=vector_store.as_retriever()
+        retriever=vector_store.as_retriever(),
+        return_source_documents=True
     )
     return qa_chain
