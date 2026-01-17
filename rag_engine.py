@@ -21,7 +21,7 @@ def process_document_to_vector_store(uploaded_file):
         loader = PyPDFLoader(tmp_file_path)
         documents = loader.load()
 
-        # Step 5: Text Chunking
+    # Step 5: Text Chunking
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200
@@ -29,10 +29,47 @@ def process_document_to_vector_store(uploaded_file):
         texts = text_splitter.split_documents(documents)
 
         # Step 6: Embeddings Generation
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        # Switching to newer model which might have better rate limits/availability
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
         
-        # Step 7: Vector Store Creation
-        vector_store = FAISS.from_documents(texts, embeddings)
+        # Step 7: Vector Store Creation - STRICT SERIAL PROCESSING
+        # Processing one by one to avoid any rate limit bursts
+        import time
+        vector_store = None
+        
+        total_chunks = len(texts)
+        print(f"Processing {total_chunks} chunks one by one...") 
+        
+        for i, text_chunk in enumerate(texts):
+            success = False
+            retries = 3
+            retry_delay = 30 # Start with 30s delay
+            
+            while not success and retries > 0:
+                try:
+                    # Create a single-item list for the loader
+                    batch = [text_chunk]
+                    
+                    if vector_store is None:
+                        vector_store = FAISS.from_documents(batch, embeddings)
+                    else:
+                        vector_store.add_documents(batch)
+                        
+                    success = True
+                    # Small delay after each successful add
+                    time.sleep(1) 
+                    
+                except Exception as e:
+                    if "429" in str(e):
+                        print(f"Hit rate limit on chunk {i+1}. Retrying in {retry_delay}s...")
+                        time.sleep(retry_delay) 
+                        retry_delay *= 2 # Exponential backoff: 30 -> 60 -> 120
+                        retries -= 1
+                    else:
+                        raise e
+            
+            if not success:
+                raise Exception(f"Failed to process chunk {i+1} due to rate limits after retries.")
         
         return vector_store
     finally:
@@ -44,7 +81,8 @@ def create_qa_chain(vector_store):
     """
     Step 10: Setup LLM Chain with the vector store retriever.
     """
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0)
+    # Using gemini-flash-latest as it is confirmed available in the user's list
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0)
     
     # Step 9: Prompt Engineering (Hidden in 'stuff' chain type default prompt, or can be customized)
     qa_chain = RetrievalQA.from_chain_type(
