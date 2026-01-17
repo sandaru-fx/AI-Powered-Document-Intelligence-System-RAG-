@@ -85,10 +85,10 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("---")
-    st.header("📂 Upload Document")
-    uploaded_file = st.file_uploader("Upload a PDF to start", type=['pdf'], label_visibility="collapsed")
+    st.header("📂 Upload Documents")
+    uploaded_files = st.file_uploader("Upload PDFs to start", type=['pdf'], accept_multiple_files=True, label_visibility="collapsed")
     
-    if uploaded_file:
+    if uploaded_files:
         if st.session_state.vector_store is None:
             progress_bar = st.progress(0, text="Initializing...")
             status_text = st.empty()
@@ -100,15 +100,15 @@ with st.sidebar:
 
             try:
                 from rag_engine import process_document_to_vector_store, create_qa_chain
-                st.session_state.vector_store = process_document_to_vector_store(uploaded_file, progress_callback=update_progress)
+                st.session_state.vector_store = process_document_to_vector_store(uploaded_files, progress_callback=update_progress)
                 st.session_state.qa_chain = create_qa_chain(st.session_state.vector_store)
-                st.success("✅ Document Ready!")
+                st.success(f"✅ {len(uploaded_files)} Documents Ready!")
                 progress_bar.empty()
                 status_text.empty()
             except Exception as e:
                 st.error(f"❌ Error: {e}")
         else:
-            st.info("💡 Document is loaded and ready.")
+            st.info(f"💡 {len(uploaded_files)} documents loaded.")
 
     st.markdown("---")
     st.markdown("### 🛠️ Built with")
@@ -127,7 +127,7 @@ for message in st.session_state.messages:
                     st.markdown(f"<div class='source-box'>{src}</div>", unsafe_allow_html=True)
 
 # User Input
-if prompt := st.chat_input("Ask a question about your document..."):
+if prompt := st.chat_input("Ask a question about your documents..."):
     # Add user message to history
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -136,7 +136,7 @@ if prompt := st.chat_input("Ask a question about your document..."):
     # RAG Response
     if st.session_state.qa_chain:
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing document..."):
+            with st.spinner("Analyzing documents..."):
                 try:
                     # Request answer and sources
                     result = st.session_state.qa_chain({"query": prompt})
@@ -145,8 +145,15 @@ if prompt := st.chat_input("Ask a question about your document..."):
                     
                     st.markdown(response_text)
                     
-                    # Process sources
-                    unique_sources = list(set([doc.page_content[:200] + "..." for doc in source_docs]))
+                    # Process sources with page numbers
+                    unique_sources = []
+                    for doc in source_docs:
+                        filename = doc.metadata.get("source", "Unknown")
+                        page = doc.metadata.get("page", 0) + 1
+                        snippet = doc.page_content[:200] + "..."
+                        source_info = f"**File:** {filename}, **Page:** {page}<br>{snippet}"
+                        if source_info not in unique_sources:
+                            unique_sources.append(source_info)
                     
                     with st.expander("Show Sources"):
                         for src in unique_sources:
