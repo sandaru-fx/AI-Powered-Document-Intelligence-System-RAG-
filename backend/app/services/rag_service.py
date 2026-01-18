@@ -16,10 +16,11 @@ load_dotenv()
 
 class RAGService:
     def __init__(self):
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
-        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
-        self.vector_store = None
-        self.bm25_retriever = None
+        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+        # Store vector stores by user_id
+        self.user_vector_stores = {}
+        self.user_bm25_retrievers = {}
 
     async def _describe_image(self, image_path: str):
         """Uses Gemini Vision to describe an extracted image/chart."""
@@ -42,7 +43,7 @@ class RAGService:
             print(f"Error describing image {image_path}: {e}")
             return ""
 
-    async def process_pdfs(self, file_paths: list[str]):
+    async def process_pdfs(self, file_paths: list[str], user_id: str):
         all_docs = []
         for file_path in file_paths:
             loader = PyPDFLoader(file_path)
@@ -80,11 +81,10 @@ class RAGService:
                         # If it's an image, we need to describe it
                         content = str(el)
                         # Find related image if category is Image
-                        # (Simplified logic: unstructured usually saves images in the dir)
+                        # (Simplified logic: unstructured doesn't always map back perfectly in this simple loop)
                         
                         image_files = list(Path(extract_dir).glob("*.jpg")) + list(Path(extract_dir).glob("*.png"))
                         if el.category == "Image" and image_files:
-                            # This is a bit tricky as unstructured doesn't always map back perfectly in this simple loop
                             # For now, let's just describe the latest image if we're in Image category
                             latest_img = max(image_files, key=os.path.getctime)
                             description = await self._describe_image(str(latest_img))
@@ -99,10 +99,6 @@ class RAGService:
                 print("Unstructured not installed or dependencies missing. Skipping multimodal extraction.")
             except Exception as e:
                 print(f"Multimodal extraction error for {filename}: {e}")
-
-        # 1. Initialize BM25 Retriever
-        self.bm25_retriever = BM25Retriever.from_documents(all_docs)
-        self.bm25_retriever.k = 3 # Number of keyword results
 
         # 2. FAISS creation with improved batch processing
         batch_size = 50
@@ -130,18 +126,24 @@ class RAGService:
                     else:
                         raise e
         
-        self.vector_store = vector_store
+        self.user_vector_stores[user_id] = vector_store
+        # 1. Initialize BM25 Retriever for the user
+        self.user_bm25_retrievers[user_id] = BM25Retriever.from_documents(all_docs)
+        self.user_bm25_retrievers[user_id].k = 3 # Number of keyword results
         return vector_store
 
-    def query(self, question: str):
-        if not self.vector_store or not self.bm25_retriever:
-            raise ValueError("No documents processed. Please upload PDFs first.")
+    def query(self, question: str, user_id: str):
+        vector_store = self.user_vector_stores.get(user_id)
+        bm25_retriever = self.user_bm25_retrievers.get(user_id)
+        
+        if not vector_store or not bm25_retriever:
+            raise ValueError("No documents processed for this user. Please upload PDFs first.")
 
         # Create the Ensemble Retriever (Weighted Hybrid Search)
         ensemble_retriever = EnsembleRetriever(
             retrievers=[
-                self.bm25_retriever, 
-                self.vector_store.as_retriever(search_kwargs={"k": 5})
+                bm25_retriever, 
+                vector_store.as_retriever(search_kwargs={"k": 5})
             ],
             weights=[0.4, 0.6] # 40% Keyword, 60% Semantic
         )

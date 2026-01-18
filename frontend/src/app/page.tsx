@@ -3,12 +3,23 @@
 import { Sidebar } from "@/components/Sidebar";
 import { ChatInterface, ChatInterfaceHandle } from "@/components/ChatInterface";
 import { DocumentUploader } from "@/components/DocumentUploader";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const chatRef = useRef<ChatInterfaceHandle>(null);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
 
   const handleSendMessage = async (question: string) => {
     setIsPending(true);
@@ -26,6 +37,17 @@ export default function Home() {
   const handleUploadComplete = () => {
     // Refresh history or show status if needed
   };
+
+  if (loading || !user) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-brand-500" />
+          <p className="text-zinc-500 animate-pulse">Initializing Laboratory...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground selection:bg-brand-500/30">

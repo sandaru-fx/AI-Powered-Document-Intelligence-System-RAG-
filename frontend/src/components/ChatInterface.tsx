@@ -12,7 +12,7 @@ interface Message {
 }
 
 export interface ChatInterfaceHandle {
-    addResponse: (content: string, sources: any[]) => void;
+    addResponse: (content: string, sources?: any[]) => void;
 }
 
 interface ChatInterfaceProps {

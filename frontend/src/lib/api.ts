@@ -1,34 +1,40 @@
 import axios from "axios";
+import { supabase } from "./supabase";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
-const apiClient = axios.create({
+const instance = axios.create({
     baseURL: API_BASE_URL,
-    headers: {
-        "Content-Type": "application/json",
-    },
+});
+
+instance.interceptors.request.use(async (config) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+    return config;
 });
 
 export const api = {
     uploadDocs: async (files: File[]) => {
         const formData = new FormData();
         files.forEach((file) => formData.append("files", file));
-        const response = await apiClient.post("/upload", formData, {
+        const response = await instance.post("/upload", formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
         return response.data;
     },
 
-    queryDocs: async (question: string, sessionId: string = "default") => {
-        const response = await apiClient.post("/query", {
+    queryDocs: async (question: string, sessionId?: string) => {
+        const response = await instance.post("/query", {
             question,
             session_id: sessionId,
         });
         return response.data;
     },
 
-    getHistory: async (sessionId: string = "default") => {
-        const response = await apiClient.get(`/history/${sessionId}`);
+    getHistory: async (sessionId: string) => {
+        const response = await instance.get(`/history/${sessionId}`);
         return response.data;
     },
 };
