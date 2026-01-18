@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 
-export function DocumentUploader({ onUploadComplete }: { onUploadComplete: () => void }) {
+export function DocumentUploader({ onUploadComplete }: { onUploadComplete: (filenames: string[]) => void }) {
     const [files, setFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -23,10 +23,11 @@ export function DocumentUploader({ onUploadComplete }: { onUploadComplete: () =>
         setStatus("idle");
 
         try {
-            await api.uploadDocs(files);
+            const response = await api.uploadDocs(files);
+            const uploadedFilenames = response.filenames || [];
             setStatus("success");
             setFiles([]);
-            onUploadComplete();
+            onUploadComplete(uploadedFilenames);
         } catch (err) {
             console.error(err);
             setStatus("error");

@@ -62,9 +62,14 @@ class RAGService:
             try:
                 from unstructured.partition.pdf import partition_pdf
                 
-                extract_dir = os.path.join("backend/data/extracted", filename)
+                extract_dir = os.path.join("backend/data/extracted", filename.replace(" ", "_"))
                 os.makedirs(extract_dir, exist_ok=True)
                 
+                # Check if file exists before processing
+                if not os.path.exists(file_path):
+                    print(f"File not found: {file_path}")
+                    continue
+
                 elements = partition_pdf(
                     filename=file_path,
                     extract_images_in_pdf=True,

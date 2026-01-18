@@ -1,10 +1,14 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
 import { ChatInterface, ChatInterfaceHandle } from "@/components/ChatInterface";
-import DocumentUploader from "@/components/DocumentUploader";
-import PDFViewer from "@/components/PDFViewer";
+import { DocumentUploader } from "@/components/DocumentUploader";
+import dynamic from 'next/dynamic';
 import { useState, useRef, useEffect } from "react";
+
+const PDFViewer = dynamic(() => import("@/components/PDFViewer"), {
+  ssr: false,
+});
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -51,7 +55,7 @@ export default function Dashboard() {
           sources: response.sources,
         });
       } else {
-        const response = await api.query(question, sessionId);
+        const response = await api.queryDocs(question, sessionId);
         chatRef.current.addMessage({
           role: "assistant",
           content: response.answer,
@@ -124,7 +128,7 @@ export default function Dashboard() {
             >
               Export Report
             </button>
-            <DocumentUploader onUploadComplete={(filenames) => {
+            <DocumentUploader onUploadComplete={(filenames: string[]) => {
               setSelectedDocs(prev => Array.from(new Set([...prev, ...filenames])));
             }} />
           </div>
