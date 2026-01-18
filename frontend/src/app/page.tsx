@@ -1,19 +1,26 @@
 "use client";
 
-import { Sidebar } from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 import { ChatInterface, ChatInterfaceHandle } from "@/components/ChatInterface";
-import { DocumentUploader } from "@/components/DocumentUploader";
+import DocumentUploader from "@/components/DocumentUploader";
+import PDFViewer from "@/components/PDFViewer";
 import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils"; // Assuming cn utility is available
 
-export default function Home() {
+export default function Dashboard() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
   const chatRef = useRef<ChatInterfaceHandle>(null);
+  const [sessionId, setSessionId] = useState("default-" + Date.now());
+
+  // Elite Features State
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerConfig, setViewerConfig] = useState<{ url: string, page?: number }>({ url: "" });
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -21,78 +28,147 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
-  const handleSendMessage = async (question: string) => {
-    setIsPending(true);
-    try {
-      const response = await api.queryDocs(question);
-      chatRef.current?.addResponse(response.answer, response.sources);
-    } catch (err) {
-      console.error(err);
-      chatRef.current?.addResponse("Error: Could not reach the intelligence engine. Make sure the backend is running.");
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const handleUploadComplete = () => {
-    // Refresh history or show status if needed
-  };
-
   if (loading || !user) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-brand-500" />
-          <p className="text-zinc-500 animate-pulse">Initializing Laboratory...</p>
-        </div>
+      <div className="h-screen w-full bg-[#0a0a0c] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
       </div>
     );
   }
 
+  const handleSendMessage = async (question: string) => {
+    if (!chatRef.current) return;
+
+    chatRef.current.addMessage({ role: "user", content: question });
+    chatRef.current.setLoading(true);
+
+    try {
+      if (isComparisonMode && selectedDocs.length > 0) {
+        const response = await api.compareDocs(selectedDocs, question);
+        chatRef.current.addMessage({
+          role: "assistant",
+          content: response.analysis,
+          sources: response.sources,
+        });
+      } else {
+        const response = await api.query(question, sessionId);
+        chatRef.current.addMessage({
+          role: "assistant",
+          content: response.answer,
+          sources: response.sources,
+        });
+      }
+    } catch (error: any) {
+      chatRef.current.addMessage({
+        role: "assistant",
+        content: `Error: ${error.response?.data?.detail || "Failed to get response from AI."}`,
+      });
+    } finally {
+      chatRef.current.setLoading(false);
+    }
+  };
+
+  const handleSourceClick = (filename: string, page?: number) => {
+    // In a real app, this URL would be a signed URL or a direct link to the backend storage
+    // For local development, we'll assume the backend serves it or we use a placeholder
+    const pdfUrl = `${process.env.NEXT_PUBLIC_API_URL} /files/${filename} `;
+    setViewerConfig({ url: pdfUrl, page });
+    setViewerOpen(true);
+  };
+
+  const handleExport = async () => {
+    try {
+      const blob = await api.exportReport(sessionId);
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Research_Report_${sessionId.slice(0, 8)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      console.error("Export failed", error);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen bg-background text-foreground selection:bg-brand-500/30">
-      {/* Sidebar - Left */}
+    <main className="flex h-screen bg-[#0a0a0c] overflow-hidden">
       <Sidebar />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-row p-6 gap-6 h-screen overflow-hidden">
-        {/* Chat Section - Middle */}
-        <div className="flex-[2] h-full">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-16 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl flex items-center justify-between px-8 z-10">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-semibold text-white tracking-tight">
+              Research <span className="text-indigo-500">Laboratory</span>
+            </h1>
+            <div className="h-4 w-[1px] bg-white/10" />
+            <span className="text-xs text-zinc-500 font-mono">ID: {sessionId.slice(0, 8)}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsComparisonMode(!isComparisonMode)}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-sm transition-all flex items-center gap-2",
+                isComparisonMode
+                  ? "bg-indigo-500/20 border border-indigo-500/50 text-indigo-300"
+                  : "bg-white/5 border border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full", isComparisonMode ? "bg-indigo-500 animate-pulse" : "bg-zinc-600")} />
+              {isComparisonMode ? "Comparison Mode Active" : "Expert Comparison"}
+            </button>
+
+            <button
+              onClick={handleExport}
+              className="px-4 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 text-sm hover:bg-white/10 hover:text-white transition-all"
+            >
+              Export Report
+            </button>
+            <DocumentUploader onUploadComplete={(filenames) => {
+              setSelectedDocs(prev => Array.from(new Set([...prev, ...filenames])));
+            }} />
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-hidden relative">
           <ChatInterface
             ref={chatRef}
             onSendMessage={handleSendMessage}
-            isPending={isPending}
+            onSourceClick={handleSourceClick}
           />
         </div>
+      </div>
 
-        {/* Tools Section - Right */}
-        <div className="flex-1 h-full flex flex-col gap-6">
-          <DocumentUploader onUploadComplete={handleUploadComplete} />
-
-          {/* Stats/Status Card */}
-          <div className="glass-morphism rounded-3xl p-8 border border-white/10 flex-1">
-            <h3 className="font-bold text-white mb-4">Engine Status</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Multimodal Agent</span>
-                <span className="text-emerald-400 font-medium">Operational</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Hybrid Search</span>
-                <span className="text-emerald-400 font-medium">Enabled (40/60)</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Latency</span>
-                <span className="text-zinc-400 font-medium">~1.2s</span>
-              </div>
-
-              <div className="pt-4 border-t border-white/10 mt-4 text-xs text-zinc-500 leading-relaxed">
-                The system is using **EnsembleRetriever** with Gemini 1.5 Flash. Large PDFs are processed in batches of 50 chunks for optimal performance.
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
+      {viewerOpen && (
+        <PDFViewer
+          url={viewerConfig.url}
+          initialPage={viewerConfig.page}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
+    </main>
+  );
+  <div className="space-y-4">
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-zinc-500">Multimodal Agent</span>
+      <span className="text-emerald-400 font-medium">Operational</span>
     </div>
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-zinc-500">Hybrid Search</span>
+      <span className="text-emerald-400 font-medium">Enabled (40/60)</span>
+    </div>
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-zinc-500">Latency</span>
+      <span className="text-zinc-400 font-medium">~1.2s</span>
+    </div>
+
+    <div className="pt-4 border-t border-white/10 mt-4 text-xs text-zinc-500 leading-relaxed">
+      The system is using **EnsembleRetriever** with Gemini 1.5 Flash. Large PDFs are processed in batches of 50 chunks for optimal performance.
+    </div>
+  </div>
+          </div >
+        </div >
+      </main >
+    </div >
   );
 }

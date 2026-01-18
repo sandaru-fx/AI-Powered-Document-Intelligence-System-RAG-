@@ -164,4 +164,48 @@ class RAGService:
             ]
         }
 
+    def compare_documents(self, user_id: str, filenames: list[str], aspect: str = "general"):
+        """Specialized logic for cross-document analysis."""
+        vector_store = self.user_vector_stores.get(user_id)
+        if not vector_store:
+            raise ValueError("No vector store found for user.")
+
+        # Filter documents by filenames if provided
+        # Note: FAISS filtering can be tricky, typically done via metadata
+        filter_dict = {"source": filenames}
+        
+        # We manually query for related snippets across these specific files
+        comparison_prompt = f"""
+        Analyze the following documents: {', '.join(filenames)}.
+        Focus specifically on: {aspect}.
+        
+        Identify:
+        1. Key similarities / Consensus points.
+        2. Significant contradictions or differing viewpoints.
+        3. Unique insights found in only one of the documents.
+        
+        Structure your response with clear headings and bullet points.
+        """
+        
+        # We use a retriever with filtering
+        retriever = vector_store.as_retriever(
+            search_kwargs={"k": 10, "filter": {"source": {"$in": filenames}}}
+        )
+        
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=retriever,
+            return_source_documents=True
+        )
+        
+        result = qa_chain.invoke({"query": comparison_prompt})
+        return {
+            "analysis": result["result"],
+            "sources": [
+                {"content": doc.page_content, "metadata": doc.metadata} 
+                for doc in result["source_documents"]
+            ]
+        }
+
 rag_service = RAGService()

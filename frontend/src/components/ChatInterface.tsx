@@ -5,25 +5,36 @@ import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "re
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface Message {
-    role: "user" | "assistant";
+interface Source {
     content: string;
-    sources?: any[];
+    metadata: {
+        source: string;
+        page?: number;
+        [key: string]: any;
+    };
+}
+
+interface Message {
+    role: 'user' | 'assistant';
+    content: string;
+    sources?: Source[];
 }
 
 export interface ChatInterfaceHandle {
-    addResponse: (content: string, sources?: any[]) => void;
+    addMessage: (message: Message) => void;
+    setLoading: (loading: boolean) => void;
 }
 
 interface ChatInterfaceProps {
-    onSendMessage: (q: string) => void;
-    isPending: boolean;
+    onSendMessage: (message: string) => void;
+    onSourceClick?: (source: string, page?: number) => void;
 }
 
 export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(
-    ({ onSendMessage, isPending }, ref) => {
+    ({ onSendMessage, onSourceClick }, ref) => {
         const [messages, setMessages] = useState<Message[]>([]);
         const [input, setInput] = useState("");
+        const [isPending, setIsPending] = useState(false); // Internal state for pending status
         const scrollRef = useRef<HTMLDivElement>(null);
 
         useEffect(() => {
@@ -43,9 +54,12 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         };
 
         useImperativeHandle(ref, () => ({
-            addResponse(content: string, sources?: any[]) {
-                setMessages(prev => [...prev, { role: "assistant", content, sources }]);
-            }
+            addMessage: (message: Message) => {
+                setMessages((prev) => [...prev, message]);
+            },
+            setLoading: (loading: boolean) => {
+                setIsPending(loading);
+            },
         }));
 
         return (
@@ -112,12 +126,16 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                     </div>
 
                                     {msg.sources && msg.sources.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {msg.sources.slice(0, 3).map((src: any, idx: number) => (
-                                                <span key={idx} className="text-[10px] px-2 py-1 rounded bg-white/5 text-zinc-400 border border-white/10 flex items-center gap-1">
-                                                    <FileText className="w-3 h-3" />
-                                                    {src.metadata.source} (p. {src.metadata.page || 1})
-                                                </span>
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            {msg.sources.map((source, sIdx) => (
+                                                <button
+                                                    key={sIdx}
+                                                    onClick={() => onSourceClick?.(source.metadata.source, source.metadata.page)}
+                                                    className="text-[10px] px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-colors flex items-center gap-1 group"
+                                                >
+                                                    <span className="w-1 h-1 rounded-full bg-indigo-500 group-hover:animate-ping" />
+                                                    {source.metadata.source} {source.metadata.page ? `(p. ${source.metadata.page})` : ''}
+                                                </button>
                                             ))}
                                         </div>
                                     )}

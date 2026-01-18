@@ -37,4 +37,16 @@ export const api = {
         const response = await instance.get(`/history/${sessionId}`);
         return response.data;
     },
+
+    compareDocs: async (filenames: string[], aspect: string = "general") => {
+        const response = await instance.post("/compare", { filenames, aspect });
+        return response.data;
+    },
+
+    exportReport: async (sessionId: string) => {
+        const response = await instance.get(`/export/${sessionId}`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    }
 };
