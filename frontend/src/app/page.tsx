@@ -71,7 +71,7 @@ export default function Dashboard() {
   const handleSourceClick = (filename: string, page?: number) => {
     // In a real app, this URL would be a signed URL or a direct link to the backend storage
     // For local development, we'll assume the backend serves it or we use a placeholder
-    const pdfUrl = `${process.env.NEXT_PUBLIC_API_URL} /files/${filename} `;
+    const pdfUrl = `${process.env.NEXT_PUBLIC_API_URL}/files/${filename}`;
     setViewerConfig({ url: pdfUrl, page });
     setViewerOpen(true);
   };
@@ -147,28 +147,5 @@ export default function Dashboard() {
         />
       )}
     </main>
-  );
-  <div className="space-y-4">
-    <div className="flex justify-between items-center text-sm">
-      <span className="text-zinc-500">Multimodal Agent</span>
-      <span className="text-emerald-400 font-medium">Operational</span>
-    </div>
-    <div className="flex justify-between items-center text-sm">
-      <span className="text-zinc-500">Hybrid Search</span>
-      <span className="text-emerald-400 font-medium">Enabled (40/60)</span>
-    </div>
-    <div className="flex justify-between items-center text-sm">
-      <span className="text-zinc-500">Latency</span>
-      <span className="text-zinc-400 font-medium">~1.2s</span>
-    </div>
-
-    <div className="pt-4 border-t border-white/10 mt-4 text-xs text-zinc-500 leading-relaxed">
-      The system is using **EnsembleRetriever** with Gemini 1.5 Flash. Large PDFs are processed in batches of 50 chunks for optimal performance.
-    </div>
-  </div>
-          </div >
-        </div >
-      </main >
-    </div >
   );
 }
