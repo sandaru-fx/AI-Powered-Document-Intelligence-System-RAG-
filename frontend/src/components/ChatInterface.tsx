@@ -28,20 +28,39 @@ export interface ChatInterfaceHandle {
 interface ChatInterfaceProps {
     onSendMessage: (message: string) => void;
     onSourceClick?: (source: string, page?: number) => void;
+    activeDocument?: string;
 }
 
 export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(
-    ({ onSendMessage, onSourceClick }, ref) => {
+    ({ onSendMessage, onSourceClick, activeDocument }, ref) => {
         const [messages, setMessages] = useState<Message[]>([]);
         const [input, setInput] = useState("");
         const [isPending, setIsPending] = useState(false); // Internal state for pending status
+        const [thinkingStep, setThinkingStep] = useState(0);
         const scrollRef = useRef<HTMLDivElement>(null);
+
+        const thinkingSteps = [
+            "Reading document...",
+            "Extracting key insights...",
+            "Formulating answer..."
+        ];
+
+        useEffect(() => {
+            let interval: NodeJS.Timeout;
+            if (isPending) {
+                setThinkingStep(0);
+                interval = setInterval(() => {
+                    setThinkingStep(prev => (prev + 1) % thinkingSteps.length);
+                }, 1500);
+            }
+            return () => clearInterval(interval);
+        }, [isPending]);
 
         useEffect(() => {
             if (scrollRef.current) {
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
             }
-        }, [messages, isPending]);
+        }, [messages, isPending, thinkingStep]);
 
         const handleSubmit = (e: React.FormEvent) => {
             e.preventDefault();
@@ -215,7 +234,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                             </div>
                             <div className="bg-white/5 p-4 rounded-2xl flex items-center gap-2">
                                 <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
-                                <span className="text-sm text-zinc-500">Thinking...</span>
+                                <span className="text-sm text-zinc-500">
+                                    {thinkingSteps[thinkingStep]}
+                                </span>
                             </div>
                         </div>
                     )}
@@ -227,8 +248,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                         <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type your question here..."
-                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-500/50 transition-all pr-16"
+                            placeholder={activeDocument ? `Ask about '${activeDocument}'...` : "Type your question here..."}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all pr-16"
                         />
                         <button
                             type="submit"
