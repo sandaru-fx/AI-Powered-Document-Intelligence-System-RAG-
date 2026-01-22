@@ -54,17 +54,17 @@ export function Sidebar() {
                             className={cn(
                                 "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group font-medium",
                                 isActive
-                                    ? "bg-indigo-50/80 dark:bg-white/5 shadow-sm ring-1 ring-indigo-500/20"
+                                    ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-500/20"
                                     : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground"
                             )}
                         >
                             <item.icon className={cn(
                                 "w-5 h-5 shrink-0 transition-transform",
-                                isActive ? "text-indigo-600 dark:text-indigo-400" : "group-hover:scale-110"
+                                isActive ? "text-indigo-700 dark:text-indigo-400" : "group-hover:scale-110"
                             )} />
                             {!isCollapsed && (
                                 <span className={cn(
-                                    isActive ? "text-transparent bg-clip-text brand-gradient font-bold" : ""
+                                    isActive ? "font-bold" : "" // Removed brand-gradient to fix visibility
                                 )}>
                                     {item.label}
                                 </span>
