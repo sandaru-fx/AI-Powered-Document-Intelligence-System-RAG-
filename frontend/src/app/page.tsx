@@ -201,7 +201,7 @@ export default function Dashboard() {
 
           {/* Right Pane: PDF Viewer (Split View) */}
           <div className={cn(
-            "border-l border-white/10 bg-[#0a0a0c] transition-all duration-300 ease-in-out flex flex-col",
+            "border-l border-white/5 bg-[#0a0a0c] transition-all duration-300 ease-in-out flex flex-col",
             viewerOpen ? "w-1/2 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-full absolute right-0 h-full overflow-hidden"
           )}>
             {viewerOpen && (

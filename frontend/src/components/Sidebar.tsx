@@ -22,7 +22,7 @@ export function Sidebar() {
     return (
         <aside
             className={cn(
-                "flex flex-col h-screen glass-morphism border-r border-white/10 transition-all duration-300 z-50",
+                "flex flex-col h-screen glass-morphism border-r border-gray-800 transition-all duration-300 z-50",
                 isCollapsed ? "w-20" : "w-64"
             )}
         >
@@ -65,7 +65,7 @@ export function Sidebar() {
             </nav>
 
             {/* User & Logout */}
-            <div className="p-4 border-t border-white/10 space-y-2">
+            <div className="p-4 border-t border-gray-800 space-y-2">
                 {!isCollapsed && user && (
                     <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl mb-2 text-xs">
                         <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">

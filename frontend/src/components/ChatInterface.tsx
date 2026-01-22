@@ -82,9 +82,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         }));
 
         return (
-            <div className="flex flex-col h-full glass-morphism rounded-3xl overflow-hidden relative border border-white/10">
+            <div className="flex flex-col h-full glass-morphism rounded-3xl overflow-hidden relative border border-gray-800">
                 {/* Header */}
-                <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-white/[0.02]">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full brand-gradient flex items-center justify-center">
                             <Bot className="text-white w-6 h-6" />
@@ -137,7 +137,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                             onClick={() => {
                                                 onSendMessage(item.label);
                                             }}
-                                            className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-indigo-500/30 transition-all text-left group"
+                                            className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-gray-800 hover:bg-white/10 hover:border-indigo-500/30 transition-all text-left group"
                                         >
                                             <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                                                 <item.icon className="w-5 h-5" />
@@ -155,7 +155,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                 </div>
 
                                 {/* Recent Activity */}
-                                <div className="pt-8 border-t border-white/5">
+                                <div className="pt-8 border-t border-gray-800">
                                     <h3 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2">
                                         <History className="w-4 h-4" />
                                         Recently Processed
@@ -203,7 +203,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                         "p-4 rounded-2xl text-sm leading-relaxed",
                                         msg.role === "user"
                                             ? "bg-brand-600 text-white rounded-tr-none"
-                                            : "bg-white/5 text-zinc-200 border border-white/5 rounded-tl-none"
+                                            : "bg-white/5 text-zinc-200 border border-gray-800 rounded-tl-none"
                                     )}>
                                         {msg.content}
                                     </div>
@@ -243,13 +243,13 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                 </div>
 
                 {/* Input */}
-                <div className="p-6 bg-white/[0.01] border-t border-white/10">
+                <div className="p-6 bg-white/[0.01] border-t border-gray-800">
                     <form onSubmit={handleSubmit} className="flex gap-4 relative">
                         <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder={activeDocument ? `Ask about '${activeDocument}'...` : "Type your question here..."}
-                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all pr-16"
+                            className="flex-1 bg-white/5 border border-gray-800 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all pr-16"
                         />
                         <button
                             type="submit"
