@@ -182,23 +182,40 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-hidden relative">
-          <ChatInterface
-            ref={chatRef}
-            onSendMessage={handleSendMessage}
-            onSourceClick={handleSourceClick}
-            activeDocument={selectedDocs[selectedDocs.length - 1]}
-          />
+        <div className="flex-1 flex overflow-hidden relative">
+
+          {/* Left Pane: Chat Interface */}
+          <div className={cn(
+            "flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out",
+            viewerOpen ? "mr-0 w-1/2" : "w-full"
+          )}>
+            <div className="flex-1 overflow-hidden relative px-4 pb-4">
+              <ChatInterface
+                ref={chatRef}
+                onSendMessage={handleSendMessage}
+                onSourceClick={handleSourceClick}
+                activeDocument={selectedDocs[selectedDocs.length - 1]}
+              />
+            </div>
+          </div>
+
+          {/* Right Pane: PDF Viewer (Split View) */}
+          <div className={cn(
+            "border-l border-white/10 bg-[#0a0a0c] transition-all duration-300 ease-in-out flex flex-col",
+            viewerOpen ? "w-1/2 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-full absolute right-0 h-full overflow-hidden"
+          )}>
+            {viewerOpen && (
+              <PDFViewer
+                url={viewerConfig.url}
+                initialPage={viewerConfig.page}
+                onClose={() => setViewerOpen(false)}
+                isInline={true}
+              />
+            )}
+          </div>
+
         </div>
       </div>
-
-      {viewerOpen && (
-        <PDFViewer
-          url={viewerConfig.url}
-          initialPage={viewerConfig.page}
-          onClose={() => setViewerOpen(false)}
-        />
-      )}
     </main>
   );
 }
