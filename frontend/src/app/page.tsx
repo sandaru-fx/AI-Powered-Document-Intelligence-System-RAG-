@@ -102,22 +102,22 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="flex h-screen bg-[#0a0a0c] overflow-hidden">
+    <main className="flex h-screen bg-background overflow-hidden transition-colors duration-300">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl flex items-center justify-between px-8 z-10">
+        <header className="h-16 border-b border-card-border bg-card-bg/80 backdrop-blur-xl flex items-center justify-between px-6 z-10 sticky top-0 transition-colors duration-300">
 
           {/* Left: Project Identity */}
           <div className="flex items-center gap-6">
-            <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                <span className="text-indigo-400 font-bold">R</span>
+            <h1 className="text-xl font-semibold text-foreground tracking-tight flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center shadow-sm">
+                <span className="text-white font-bold">R</span>
               </span>
-              <span className="hidden md:inline">Research <span className="text-indigo-500">Lab</span></span>
+              <span className="hidden md:inline">Research <span className="text-indigo-600 dark:text-indigo-400">Lab</span></span>
             </h1>
 
-            <div className="h-8 w-[1px] bg-white/10" />
+            <div className="h-8 w-[1px] bg-card-border" />
 
             {/* Editable Project Name */}
             {isEditingName ? (
@@ -125,55 +125,55 @@ export default function Dashboard() {
                 <input
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
-                  className="bg-white/10 border border-indigo-500/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none min-w-[200px]"
+                  className="bg-background border border-indigo-500 rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none min-w-[200px]"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') saveName();
                     if (e.key === 'Escape') setIsEditingName(false);
                   }}
                 />
-                <button onClick={saveName} className="p-1.5 hover:bg-green-500/20 rounded-lg text-green-400 transition-colors"><Check className="w-4 h-4" /></button>
-                <button onClick={() => setIsEditingName(false)} className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"><X className="w-4 h-4" /></button>
+                <button onClick={saveName} className="p-1.5 hover:bg-green-500/10 rounded-lg text-green-500 transition-colors"><Check className="w-4 h-4" /></button>
+                <button onClick={() => setIsEditingName(false)} className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors"><X className="w-4 h-4" /></button>
               </div>
             ) : (
               <div
-                className="group flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-lg hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+                className="group flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all border border-transparent hover:border-card-border"
                 onClick={startEditing}
               >
                 <div>
-                  <span className="block text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">{projectName}</span>
-                  <span className="block text-[10px] text-zinc-500 font-mono leading-none mt-0.5">ID: {sessionId.slice(0, 8)}</span>
+                  <span className="block text-sm font-medium text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{projectName}</span>
+                  <span className="block text-[10px] text-muted-foreground font-mono leading-none mt-0.5">ID: {sessionId.slice(0, 8)}</span>
                 </div>
-                <Pencil className="w-3.5 h-3.5 text-zinc-600 group-hover:text-indigo-400 transition-colors opacity-0 group-hover:opacity-100" />
+                <Pencil className="w-3.5 h-3.5 text-muted-foreground group-hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100" />
               </div>
             )}
           </div>
 
           {/* Right: Action Toolbar */}
-          <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-xl border border-white/5">
+          <div className="flex items-center gap-3 bg-background p-1.5 rounded-xl border border-card-border shadow-sm">
 
             <button
               onClick={() => setIsComparisonMode(!isComparisonMode)}
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
                 isComparisonMode
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25"
-                  : "hover:bg-white/5 text-zinc-400 hover:text-white"
+                  ? "brand-gradient text-white shadow-md shadow-indigo-500/25"
+                  : "hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground"
               )}
             >
-              <Sparkles className={cn("w-4 h-4", isComparisonMode ? "text-white animate-pulse" : "text-indigo-400")} />
+              <Sparkles className={cn("w-4 h-4", isComparisonMode ? "text-white animate-pulse" : "text-indigo-500")} />
               {isComparisonMode ? "Expert Mode" : "Compare"}
             </button>
 
-            <div className="h-6 w-[1px] bg-white/10 mx-1" />
+            <div className="h-6 w-[1px] bg-card-border mx-1" />
 
             <button
               onClick={handleExport}
-              className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors relative group"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors relative group"
               title="Export Report"
             >
               <Download className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] bg-black/80 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Export PDF</span>
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] bg-foreground text-background px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Export PDF</span>
             </button>
 
             <DocumentUploader onUploadComplete={(filenames: string[]) => {

@@ -27,14 +27,15 @@
 
 /* Light Mode (Enterprise SaaS) */
 :root {
-  --background: #FFFFFF;
+  --background: #F9FAFB;
+  /* Light Gray Canvas for Depth */
   --foreground: #1F2937;
   /* Dark Charcoal */
   --muted-foreground: #6B7280;
   /* Medium Gray */
 
-  --sidebar-bg: #F4F6F8;
-  /* Cool Gray */
+  --sidebar-bg: #FFFFFF;
+  /* Pure White Sidebar */
 
   --card-bg: #FFFFFF;
   --card-border: #E5E7EB;
