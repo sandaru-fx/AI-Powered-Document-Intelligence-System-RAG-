@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, Bot, User, Loader2, FileText } from "lucide-react";
+import { Send, Bot, User, Loader2, FileText, ArrowRightLeft, AlertTriangle, BarChart3, History } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -86,17 +86,81 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                     className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth custom-scrollbar"
                 >
                     {messages.length === 0 && (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
-                            <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-                                <FileText className="w-10 h-10 text-zinc-500" />
+                        <div className="h-full flex flex-col items-center justify-center p-8 overflow-y-auto">
+
+                            {/* Hero Section */}
+                            <div className="text-center space-y-4 mb-10">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mx-auto ring-1 ring-white/10">
+                                    <Bot className="w-8 h-8 text-indigo-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
+                                        Research Assistant
+                                    </h2>
+                                    <p className="text-zinc-400 max-w-md mx-auto text-sm">
+                                        I can help you analyze documents, compare contracts, and extract key insights instantly.
+                                    </p>
+                                </div>
                             </div>
-                            <h2 className="text-2xl font-bold text-zinc-300">Intelligent Document Analysis</h2>
-                            <p className="text-zinc-500 max-w-sm">
-                                Upload your technical documents and ask complex questions. I'll search and summarize across your library.
-                            </p>
+
+                            <div className="w-full max-w-2xl space-y-8">
+
+                                {/* Suggested Prompts */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {[
+                                        { label: "Summarize this document", icon: FileText, desc: "Get a quick executive summary" },
+                                        { label: "Compare with previous version", icon: ArrowRightLeft, desc: "Highlight changes & conflicts" },
+                                        { label: "Find key risk factors", icon: AlertTriangle, desc: "Identify potential legal risks" },
+                                        { label: "Extract financial data", icon: BarChart3, desc: "Pull tables and figures" }
+                                    ].map((item, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                onSendMessage(item.label);
+                                            }}
+                                            className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-indigo-500/30 transition-all text-left group"
+                                        >
+                                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                                <item.icon className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <span className="block text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">
+                                                    {item.label}
+                                                </span>
+                                                <span className="block text-xs text-zinc-500 mt-0.5">
+                                                    {item.desc}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Recent Activity */}
+                                <div className="pt-8 border-t border-white/5">
+                                    <h3 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2">
+                                        <History className="w-4 h-4" />
+                                        Recently Processed
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {[
+                                            { name: "Q3_Financial_Report.pdf", time: "2 hours ago" },
+                                            { name: "Employment_Contract_v2.pdf", time: "5 hours ago" },
+                                            { name: "Project_Proposal_Draft.pdf", time: "1 day ago" }
+                                        ].map((doc, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                                                <div className="flex items-center gap-3">
+                                                    <FileText className="w-4 h-4 text-zinc-600 group-hover:text-indigo-400 transition-colors" />
+                                                    <span className="text-sm text-zinc-400 group-hover:text-zinc-200">{doc.name}</span>
+                                                </div>
+                                                <span className="text-xs text-zinc-600 font-mono">{doc.time}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
                     )}
-
                     <AnimatePresence initial={false}>
                         {messages.map((msg, i) => (
                             <motion.div

@@ -2,15 +2,15 @@ import os
 from supabase import create_client
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("backend/.env")
 
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 
 supabase = create_client(url, key)
 
-email = "demo@example.com"
-password = "Password123!"
+email = "demo.user@gmail.com"
+password = "Demo123456!"
 
 try:
     res = supabase.auth.sign_up({

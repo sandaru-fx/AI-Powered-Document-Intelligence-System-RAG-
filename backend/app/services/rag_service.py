@@ -21,6 +21,8 @@ class RAGService:
         # Store vector stores by user_id
         self.user_vector_stores = {}
         self.user_bm25_retrievers = {}
+        self.index_dir = os.path.join("backend", "data", "vector_index")
+        os.makedirs(self.index_dir, exist_ok=True)
 
     async def _describe_image(self, image_path: str):
         """Uses Gemini Vision to describe an extracted image/chart."""
@@ -57,8 +59,11 @@ class RAGService:
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
             all_docs.extend(text_splitter.split_documents(documents))
 
+
             # --- Multimodal Extraction (Optional/Experimental) ---
+            # DISABLED: This is causing hangs during PDF processing
             # Try to extract images from PDF using unstructured if available
+            """
             try:
                 from unstructured.partition.pdf import partition_pdf
                 
@@ -104,11 +109,17 @@ class RAGService:
                 print("Unstructured not installed or dependencies missing. Skipping multimodal extraction.")
             except Exception as e:
                 print(f"Multimodal extraction error for {filename}: {e}")
+            """
+
+        if not all_docs:
+            print(f"No documents extracted from files: {file_paths}")
+            return None
 
         # 2. FAISS creation with improved batch processing
         batch_size = 50
         vector_store = None
         
+        print(f"Processing {len(all_docs)} document chunks...")
         for i in range(0, len(all_docs), batch_size):
             batch = all_docs[i:i + batch_size]
             success = False
@@ -131,32 +142,58 @@ class RAGService:
                     else:
                         raise e
         
-        self.user_vector_stores[user_id] = vector_store
-        # 1. Initialize BM25 Retriever for the user
-        self.user_bm25_retrievers[user_id] = BM25Retriever.from_documents(all_docs)
-        self.user_bm25_retrievers[user_id].k = 3 # Number of keyword results
+        if vector_store:
+            self.user_vector_stores[user_id] = vector_store
+            
+            # Save FAISS index
+            user_index_path = os.path.join(self.index_dir, str(user_id))
+            vector_store.save_local(user_index_path)
+            
+            # 1. Initialize BM25 Retriever for the user
+            self.user_bm25_retrievers[user_id] = BM25Retriever.from_documents(all_docs)
+            self.user_bm25_retrievers[user_id].k = 3 # Number of keyword results
+        
         return vector_store
 
     def query(self, question: str, user_id: str):
         vector_store = self.user_vector_stores.get(user_id)
+        
+        if not vector_store:
+            # Try loading from disk
+            user_index_path = os.path.join(self.index_dir, str(user_id))
+            if os.path.exists(user_index_path):
+                print(f"Loading vector store for user {user_id} from disk...")
+                vector_store = FAISS.load_local(
+                    user_index_path, 
+                    self.embeddings, 
+                    allow_dangerous_deserialization=True
+                )
+                self.user_vector_stores[user_id] = vector_store
+            else:
+                raise ValueError("No documents processed for this user. Please upload PDFs first.")
+
         bm25_retriever = self.user_bm25_retrievers.get(user_id)
         
-        if not vector_store or not bm25_retriever:
-            raise ValueError("No documents processed for this user. Please upload PDFs first.")
-
-        # Create the Ensemble Retriever (Weighted Hybrid Search)
-        ensemble_retriever = EnsembleRetriever(
-            retrievers=[
-                bm25_retriever, 
-                vector_store.as_retriever(search_kwargs={"k": 5})
-            ],
-            weights=[0.4, 0.6] # 40% Keyword, 60% Semantic
-        )
+        # If BM25 is missing (e.g. after restart), we fallback to pure Vector Search
+        # or we could implement doc persistence to rebuild it.
+        # For now, let's use FAISS if BM25 is missing.
+        if not bm25_retriever:
+            print(f"BM25 retriever missing for user {user_id}, using FAISS only.")
+            retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+        else:
+            # Create the Ensemble Retriever (Weighted Hybrid Search)
+            retriever = EnsembleRetriever(
+                retrievers=[
+                    bm25_retriever, 
+                    vector_store.as_retriever(search_kwargs={"k": 5})
+                ],
+                weights=[0.4, 0.6] # 40% Keyword, 60% Semantic
+            )
 
         qa_chain = RetrievalQA.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
-            retriever=ensemble_retriever,
+            retriever=retriever,
             return_source_documents=True
         )
         

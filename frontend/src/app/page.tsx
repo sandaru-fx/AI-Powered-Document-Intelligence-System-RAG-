@@ -11,14 +11,14 @@ const PDFViewer = dynamic(() => import("@/components/PDFViewer"), {
 });
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils"; // Assuming cn utility is available
+
+import { cn, generateUUID } from "@/lib/utils"; // Assuming cn utility is available
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
-  const router = useRouter();
+
   const chatRef = useRef<ChatInterfaceHandle>(null);
-  const [sessionId, setSessionId] = useState("default-" + Date.now());
+  const [sessionId, setSessionId] = useState("");
 
   // Elite Features State
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -26,24 +26,14 @@ export default function Dashboard() {
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
 
-  if (loading || !user) {
-    return (
-      <div className="h-screen w-full bg-[#0a0a0c] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    setSessionId(generateUUID());
+  }, []);
 
   const handleSendMessage = async (question: string) => {
     if (!chatRef.current) return;
 
-    chatRef.current.addMessage({ role: "user", content: question });
     chatRef.current.setLoading(true);
 
     try {

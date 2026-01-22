@@ -4,16 +4,19 @@ import { LayoutDashboard, FileText, Settings, HelpCircle, ChevronLeft, ChevronRi
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const { user, signOut } = useAuth();
+    const pathname = usePathname();
 
     const menuItems = [
-        { icon: LayoutDashboard, label: "Dashboard" },
-        { icon: FileText, label: "Documents" },
-        { icon: Settings, label: "Settings" },
-        { icon: HelpCircle, label: "Help" },
+        { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+        { icon: FileText, label: "Documents", href: "/documents" },
+        { icon: Settings, label: "Settings", href: "/settings" },
+        { icon: HelpCircle, label: "Help", href: "/help" },
     ];
 
     return (
@@ -41,18 +44,24 @@ export function Sidebar() {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-8 space-y-2">
-                {menuItems.map((item) => (
-                    <button
-                        key={item.label}
-                        className={cn(
-                            "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group",
-                            "text-zinc-500 hover:bg-white/5 hover:text-white"
-                        )}
-                    >
-                        <item.icon className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" />
-                        {!isCollapsed && <span className="font-medium">{item.label}</span>}
-                    </button>
-                ))}
+                {menuItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn(
+                                "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group",
+                                isActive
+                                    ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                    : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                            )}
+                        >
+                            <item.icon className={cn("w-5 h-5 shrink-0 transition-transform", isActive ? "text-indigo-400" : "group-hover:scale-110")} />
+                            {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                        </Link>
+                    );
+                })}
             </nav>
 
             {/* User & Logout */}
