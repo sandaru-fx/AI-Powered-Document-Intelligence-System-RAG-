@@ -15,17 +15,55 @@
 
   --color-primary: var(--color-brand-600);
   --color-secondary: #0ea5e9;
-  
-  --color-background: #030014;
-  --color-foreground: #ffffff;
-  
-  --color-card-bg: rgba(255, 255, 255, 0.03);
-  --color-card-border: rgba(255, 255, 255, 0.1);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-muted-foreground: var(--muted-foreground);
 }
 
+/* Light Mode (Enterprise SaaS) */
 :root {
-  --background: #030014;
-  --foreground: #ffffff;
+  --background: #FFFFFF;
+  --foreground: #1F2937;
+  /* Dark Charcoal */
+  --muted-foreground: #6B7280;
+  /* Medium Gray */
+
+  --sidebar-bg: #F4F6F8;
+  /* Cool Gray */
+
+  --card-bg: #FFFFFF;
+  --card-border: #E5E7EB;
+  /* Subtle Light Gray */
+
+  --glass-bg: #FFFFFF;
+  /* Solid background for cleaner look */
+  --glass-border: #E5E7EB;
+}
+
+/* Dark Mode (Developer) */
+.dark {
+  --background: #111827;
+  /* Deep Dark Gray (Not Black) */
+  --foreground: #F9FAFB;
+  /* Off-White */
+  --muted-foreground: #9CA3AF;
+  /* Light Gray */
+
+  --sidebar-bg: #1F2937;
+  /* Lighter Dark Gray */
+
+  --card-bg: #1F2937;
+  --card-border: #374151;
+  /* Dark Subtle Gray */
+
+  --glass-bg: #1F2937;
+  /* Solid background */
+  --glass-border: #374151;
 }
 
 body {
@@ -34,29 +72,25 @@ body {
   overflow-x: hidden;
 }
 
-/* Glassmorphism Utilities */
+/* Updated Utilities */
 .glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
 }
 
 .glass-morphism {
-  background: rgba(13, 13, 17, 0.7);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
 }
 
 .brand-gradient {
-  background: linear-gradient(135deg, #7c3aed 0%, #0ea5e9 100%);
+  background: linear-gradient(to right, #4F46E5, #7C3AED);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #4F46E5, #7C3AED);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Custom Scrollbar */

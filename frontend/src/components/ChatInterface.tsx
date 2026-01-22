@@ -1,10 +1,12 @@
 "use client";
 
+// ... (imports remain similar, just ensuring lucide icons are correct)
 import { Send, Bot, User, Loader2, FileText, ArrowRightLeft, AlertTriangle, BarChart3, History } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+// ... (interfaces remain same)
 interface Source {
     content: string;
     metadata: {
@@ -35,7 +37,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     ({ onSendMessage, onSourceClick, activeDocument }, ref) => {
         const [messages, setMessages] = useState<Message[]>([]);
         const [input, setInput] = useState("");
-        const [isPending, setIsPending] = useState(false); // Internal state for pending status
+        const [isPending, setIsPending] = useState(false);
         const [thinkingStep, setThinkingStep] = useState(0);
         const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -82,17 +84,17 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         }));
 
         return (
-            <div className="flex flex-col h-full glass-morphism rounded-3xl overflow-hidden relative border border-gray-800">
+            <div className="flex flex-col h-full bg-background rounded-3xl overflow-hidden relative border border-card-border shadow-sm">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-white/[0.02]">
+                <div className="p-4 border-b border-card-border flex items-center justify-between bg-background">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full brand-gradient flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full brand-gradient flex items-center justify-center shadow-md">
                             <Bot className="text-white w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-white">Project Researcher</h3>
-                            <span className="text-xs text-brand-400 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
+                            <h3 className="font-bold text-foreground">Research Lab</h3>
+                            <span className="text-xs text-indigo-500 font-medium flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                                 Gemini 1.5 Flash Active
                             </span>
                         </div>
@@ -109,14 +111,14 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
 
                             {/* Hero Section */}
                             <div className="text-center space-y-4 mb-10">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mx-auto ring-1 ring-white/10">
-                                    <Bot className="w-8 h-8 text-indigo-400" />
+                                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-white/5 flex items-center justify-center mx-auto ring-1 ring-inset ring-indigo-500/20">
+                                    <Bot className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
+                                    <h2 className="text-3xl font-bold text-foreground tracking-tight mb-2">
                                         Research Assistant
                                     </h2>
-                                    <p className="text-zinc-400 max-w-md mx-auto text-sm">
+                                    <p className="text-muted-foreground max-w-md mx-auto text-sm">
                                         I can help you analyze documents, compare contracts, and extract key insights instantly.
                                     </p>
                                 </div>
@@ -137,16 +139,16 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                             onClick={() => {
                                                 onSendMessage(item.label);
                                             }}
-                                            className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-gray-800 hover:bg-white/10 hover:border-indigo-500/30 transition-all text-left group"
+                                            className="flex items-start gap-4 p-4 rounded-xl bg-card-bg border border-card-border shadow-sm hover:shadow-md hover:border-indigo-500 transition-all text-left group"
                                         >
-                                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-white/5 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
                                                 <item.icon className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <span className="block text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">
+                                                <span className="block text-sm font-semibold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                                     {item.label}
                                                 </span>
-                                                <span className="block text-xs text-zinc-500 mt-0.5">
+                                                <span className="block text-xs text-muted-foreground mt-0.5">
                                                     {item.desc}
                                                 </span>
                                             </div>
@@ -155,8 +157,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                 </div>
 
                                 {/* Recent Activity */}
-                                <div className="pt-8 border-t border-gray-800">
-                                    <h3 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2">
+                                <div className="pt-8 border-t border-card-border">
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
                                         <History className="w-4 h-4" />
                                         Recently Processed
                                     </h3>
@@ -166,12 +168,12 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                             { name: "Employment_Contract_v2.pdf", time: "5 hours ago" },
                                             { name: "Project_Proposal_Draft.pdf", time: "1 day ago" }
                                         ].map((doc, idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
                                                 <div className="flex items-center gap-3">
-                                                    <FileText className="w-4 h-4 text-zinc-600 group-hover:text-indigo-400 transition-colors" />
-                                                    <span className="text-sm text-zinc-400 group-hover:text-zinc-200">{doc.name}</span>
+                                                    <FileText className="w-4 h-4 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
+                                                    <span className="text-sm text-foreground">{doc.name}</span>
                                                 </div>
-                                                <span className="text-xs text-zinc-600 font-mono">{doc.time}</span>
+                                                <span className="text-xs text-muted-foreground font-mono">{doc.time}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -192,18 +194,18 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                 )}
                             >
                                 <div className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                                    msg.role === "user" ? "bg-zinc-800" : "brand-gradient"
+                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm",
+                                    msg.role === "user" ? "bg-sidebar-bg" : "brand-gradient text-white"
                                 )}>
-                                    {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+                                    {msg.role === "user" ? <User className="w-5 h-5 text-foreground" /> : <Bot className="w-5 h-5" />}
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className={cn(
-                                        "p-4 rounded-2xl text-sm leading-relaxed",
+                                        "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
                                         msg.role === "user"
-                                            ? "bg-brand-600 text-white rounded-tr-none"
-                                            : "bg-white/5 text-zinc-200 border border-gray-800 rounded-tl-none"
+                                            ? "bg-indigo-600 text-white rounded-tr-none"
+                                            : "bg-card-bg border border-card-border text-foreground rounded-tl-none"
                                     )}>
                                         {msg.content}
                                     </div>
@@ -214,7 +216,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                                 <button
                                                     key={sIdx}
                                                     onClick={() => onSourceClick?.(source.metadata.source, source.metadata.page)}
-                                                    className="text-[10px] px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-colors flex items-center gap-1 group"
+                                                    className="text-[10px] px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-1 group"
                                                 >
                                                     <span className="w-1 h-1 rounded-full bg-indigo-500 group-hover:animate-ping" />
                                                     {source.metadata.source} {source.metadata.page ? `(p. ${source.metadata.page})` : ''}
@@ -232,9 +234,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                             <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
                                 <Bot className="w-5 h-5 text-white" />
                             </div>
-                            <div className="bg-white/5 p-4 rounded-2xl flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
-                                <span className="text-sm text-zinc-500">
+                            <div className="bg-card-bg border border-card-border p-4 rounded-2xl flex items-center gap-2 shadow-sm">
+                                <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                                <span className="text-sm text-muted-foreground">
                                     {thinkingSteps[thinkingStep]}
                                 </span>
                             </div>
@@ -243,23 +245,23 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                 </div>
 
                 {/* Input */}
-                <div className="p-6 bg-white/[0.01] border-t border-gray-800">
+                <div className="p-6 bg-background border-t border-card-border">
                     <form onSubmit={handleSubmit} className="flex gap-4 relative">
                         <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder={activeDocument ? `Ask about '${activeDocument}'...` : "Type your question here..."}
-                            className="flex-1 bg-white/5 border border-gray-800 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all pr-16"
+                            className="flex-1 bg-card-bg border border-card-border rounded-2xl px-6 py-4 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 shadow-sm transition-all pr-16 placeholder:text-muted-foreground"
                         />
                         <button
                             type="submit"
                             disabled={isPending}
-                            className="absolute right-2 top-2 bottom-2 aspect-square brand-gradient rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all text-white disabled:opacity-50"
+                            className="absolute right-2 top-2 bottom-2 aspect-square brand-gradient rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all text-white disabled:opacity-50 shadow-md"
                         >
                             <Send className="w-5 h-5" />
                         </button>
                     </form>
-                    <p className="text-[10px] text-zinc-600 text-center mt-3">
+                    <p className="text-[10px] text-muted-foreground text-center mt-3">
                         Powered by Gemini 1.5 Flash & Hybrid Search Ensemble
                     </p>
                 </div>

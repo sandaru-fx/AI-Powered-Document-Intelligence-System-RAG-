@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -22,14 +23,14 @@ export function Sidebar() {
     return (
         <aside
             className={cn(
-                "flex flex-col h-screen glass-morphism border-r border-gray-800 transition-all duration-300 z-50",
+                "flex flex-col h-screen bg-sidebar-bg border-r border-card-border transition-all duration-300 z-50",
                 isCollapsed ? "w-20" : "w-64"
             )}
         >
             <div className="p-6 flex items-center gap-3">
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center shrink-0 transition-transform duration-300"
+                    className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center shrink-0 transition-transform duration-300 shadow-md hover:shadow-lg hover:scale-105"
                 >
                     {isCollapsed ? (
                         <ChevronRight className="w-5 h-5 text-white" />
@@ -38,7 +39,7 @@ export function Sidebar() {
                     )}
                 </button>
                 {!isCollapsed && (
-                    <span className="font-bold text-lg tracking-tight text-gradient">AIDoc Intel</span>
+                    <span className="font-bold text-lg tracking-tight text-foreground">AIDoc Intel</span>
                 )}
             </div>
 
@@ -51,37 +52,48 @@ export function Sidebar() {
                             key={item.label}
                             href={item.href}
                             className={cn(
-                                "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group",
+                                "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group font-medium",
                                 isActive
-                                    ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                                    : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                                    ? "bg-indigo-50/80 dark:bg-white/5 shadow-sm ring-1 ring-indigo-500/20"
+                                    : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground"
                             )}
                         >
-                            <item.icon className={cn("w-5 h-5 shrink-0 transition-transform", isActive ? "text-indigo-400" : "group-hover:scale-110")} />
-                            {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                            <item.icon className={cn(
+                                "w-5 h-5 shrink-0 transition-transform",
+                                isActive ? "text-indigo-600 dark:text-indigo-400" : "group-hover:scale-110"
+                            )} />
+                            {!isCollapsed && (
+                                <span className={cn(
+                                    isActive ? "text-transparent bg-clip-text brand-gradient font-bold" : ""
+                                )}>
+                                    {item.label}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* User & Logout */}
-            <div className="p-4 border-t border-gray-800 space-y-2">
+            <div className="p-4 border-t border-card-border space-y-2">
                 {!isCollapsed && user && (
-                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl mb-2 text-xs">
-                        <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
-                            <UserIcon className="w-4 h-4 text-white" />
+                    <div className="flex items-center gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-xl mb-2 text-xs">
+                        <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center text-white font-bold shadow-sm">
+                            {user.email?.[0].toUpperCase()}
                         </div>
                         <div className="truncate">
-                            <p className="text-white font-medium truncate">{user.email?.split('@')[0]}</p>
-                            <p className="text-zinc-500 truncate">{user.email}</p>
+                            <p className="text-foreground font-medium truncate">{user.email?.split('@')[0]}</p>
+                            <p className="text-muted-foreground truncate">{user.email}</p>
                         </div>
                     </div>
                 )}
 
+                <ThemeToggle collapsed={isCollapsed} />
+
                 <button
                     onClick={() => signOut()}
                     className={cn(
-                        "w-full flex items-center gap-4 p-3 rounded-xl transition-all text-zinc-500 hover:bg-red-500/10 hover:text-red-400 group",
+                        "w-full flex items-center gap-4 p-3 rounded-xl transition-all text-muted-foreground hover:bg-red-500/10 hover:text-red-500 group",
                         isCollapsed ? "justify-center" : ""
                     )}
                 >

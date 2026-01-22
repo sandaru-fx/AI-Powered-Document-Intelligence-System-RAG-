@@ -18,25 +18,25 @@ export default function PDFViewer({ url, onClose, initialPage, isInline = false 
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
     const containerClasses = isInline
-        ? "w-full h-full bg-slate-900 border-l border-gray-800 flex flex-col"
+        ? "w-full h-full bg-background border-l border-card-border flex flex-col"
         : "fixed inset-0 z-50 flex items-center justify-end bg-black/40 backdrop-blur-sm animate-in fade-in duration-300";
 
     const innerClasses = isInline
         ? "w-full h-full flex flex-col"
-        : "w-full max-w-4xl h-full bg-slate-900 shadow-2xl border-l border-gray-800 flex flex-col animate-in slide-in-from-right duration-500";
+        : "w-full max-w-4xl h-full bg-background shadow-2xl border-l border-card-border flex flex-col animate-in slide-in-from-right duration-500";
 
     return (
         <div className={containerClasses}>
             <div className={innerClasses}>
                 {/* Header */}
-                <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-slate-900/50">
-                    <h3 className="text-white font-medium flex items-center gap-2">
+                <div className="p-4 border-b border-card-border flex items-center justify-between bg-background">
+                    <h3 className="text-foreground font-medium flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
                         Document Inspector
                     </h3>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white"
+                        className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-muted-foreground hover:text-foreground"
                         title={isInline ? "Close Panel" : "Close Mode"}
                     >
                         <X size={20} />
