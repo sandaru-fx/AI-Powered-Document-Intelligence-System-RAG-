@@ -1,5 +1,5 @@
 import os
-import time
+import asyncio
 import base64
 from pathlib import Path
 from langchain_community.document_loaders import PyPDFLoader
@@ -136,7 +136,7 @@ class RAGService:
                 except Exception as e:
                     if "429" in str(e):
                         print(f"Rate limited. Waiting {retry_delay}s... (Batch {i//batch_size})")
-                        time.sleep(retry_delay)
+                        await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                         retries -= 1
                     else:
