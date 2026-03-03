@@ -31,14 +31,35 @@ class CompareRequest(BaseModel):
     aspect: str = "general"
 
 @router.post("/upload")
-async def upload_documents(files: list[UploadFile] = File(...)):
-    # Authentication disabled for testing - Using demo user ID from DB
-    user_id = "8625119c-5b13-4bc2-a21f-0abbf282a0cb"
+async def upload_documents(
+    files: list[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.id
     temp_dir = os.path.join(UPLOAD_DIR, str(user_id)) 
     os.makedirs(temp_dir, exist_ok=True)
     
+    # Validation constants
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    ALLOWED_EXTENSIONS = {".pdf"}
+
     file_paths = []
     try:
+        # Pre-validate all files before processing any
+        for file in files:
+            # 1. Validate Extension
+            ext = os.path.splitext(file.filename)[1].lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                raise HTTPException(status_code=400, detail=f"File {file.filename} is not a PDF.")
+
+            # 2. Validate Size
+            file.file.seek(0, 2)
+            file_size = file.file.tell()
+            file.file.seek(0)
+            if file_size > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail=f"File {file.filename} exceeds 10MB limit.")
+
+        # If all valid, save and log
         for file in files:
             file_path = os.path.join(temp_dir, file.filename)
             with open(file_path, "wb") as buffer:
@@ -72,10 +93,12 @@ async def upload_documents(files: list[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=error_msg)
 
 @router.post("/query")
-async def query_documents(request: QueryRequest):
+async def query_documents(
+    request: QueryRequest,
+    current_user: dict = Depends(get_current_user)
+):
     try:
-        # Authentication disabled for testing - Using demo user ID from DB
-        user_id = "8625119c-5b13-4bc2-a21f-0abbf282a0cb"
+        user_id = current_user.id
         response = rag_service.query(request.question, user_id=user_id)
         
         # Persist message to Supabase
@@ -121,10 +144,12 @@ async def get_history(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/compare")
-async def compare_documents(request: CompareRequest):
+async def compare_documents(
+    request: CompareRequest,
+    current_user: dict = Depends(get_current_user)
+):
     try:
-        # Authentication disabled for testing - Using demo user ID from DB
-        user_id = "8625119c-5b13-4bc2-a21f-0abbf282a0cb"
+        user_id = current_user.id
         response = rag_service.compare_documents(
             user_id=user_id, 
             filenames=request.filenames, 
@@ -159,13 +184,15 @@ async def export_report(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/files/{filename}")
-async def get_file(filename: str):
+async def get_file(
+    filename: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Serves an uploaded PDF file securely."""
     import os
     from fastapi.responses import FileResponse
     
-    # Authentication disabled for testing - Using demo user ID from DB
-    user_id = "8625119c-5b13-4bc2-a21f-0abbf282a0cb"
+    user_id = current_user.id
     file_path = f"backend/data/uploads/{user_id}/{filename}"
     
     if not os.path.exists(file_path):

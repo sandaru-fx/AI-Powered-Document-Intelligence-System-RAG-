@@ -7,7 +7,7 @@ app = FastAPI(title="AI Document Intelligence API", version="1.0.0")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust for production
+    allow_origins=["http://localhost:3000"],  # Restrict to local frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
