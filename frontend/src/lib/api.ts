@@ -48,5 +48,10 @@ export const api = {
             responseType: 'blob'
         });
         return response.data;
+    },
+
+    getDocuments: async () => {
+        const response = await instance.get("/documents");
+        return response.data;
     }
 };

@@ -178,6 +178,7 @@ export default function Dashboard() {
 
             <DocumentUploader onUploadComplete={(filenames: string[]) => {
               setSelectedDocs(prev => Array.from(new Set([...prev, ...filenames])));
+              chatRef.current?.refreshDocuments();
             }} />
           </div>
         </header>

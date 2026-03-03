@@ -92,6 +92,23 @@ async def upload_documents(
              )
         raise HTTPException(status_code=500, detail=error_msg)
 
+@router.get("/documents")
+async def get_documents(current_user: dict = Depends(get_current_user)):
+    """Returns the authenticated user's recently uploaded documents."""
+    try:
+        user_id = current_user.id
+        res = supabase.table("documents") \
+            .select("id, filename, size_bytes, created_at") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .limit(10) \
+            .execute()
+        return res.data
+    except Exception as e:
+        logger.warning(f"Failed to fetch documents for user: {e}")
+        # Return empty list instead of crashing — the feature is non-critical
+        return []
+
 @router.post("/query")
 async def query_documents(
     request: QueryRequest,

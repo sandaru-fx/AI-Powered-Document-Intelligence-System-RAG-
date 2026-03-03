@@ -1,12 +1,11 @@
 "use client";
 
-// ... (imports remain similar, just ensuring lucide icons are correct)
 import { Send, Bot, User, Loader2, FileText, ArrowRightLeft, AlertTriangle, BarChart3, History } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
 
-// ... (interfaces remain same)
 interface Source {
     content: string;
     metadata: {
@@ -22,9 +21,17 @@ interface Message {
     sources?: Source[];
 }
 
+interface RecentDocument {
+    id: string;
+    filename: string;
+    size_bytes: number;
+    created_at: string;
+}
+
 export interface ChatInterfaceHandle {
     addMessage: (message: Message) => void;
     setLoading: (loading: boolean) => void;
+    refreshDocuments: () => void;
 }
 
 interface ChatInterfaceProps {
@@ -33,12 +40,34 @@ interface ChatInterfaceProps {
     activeDocument?: string;
 }
 
+function formatTimeAgo(dateString: string): string {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+}
+
+function formatFileSize(bytes: number): string {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
 export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(
     ({ onSendMessage, onSourceClick, activeDocument }, ref) => {
         const [messages, setMessages] = useState<Message[]>([]);
         const [input, setInput] = useState("");
         const [isPending, setIsPending] = useState(false);
         const [thinkingStep, setThinkingStep] = useState(0);
+        const [recentDocs, setRecentDocs] = useState<RecentDocument[]>([]);
+        const [docsLoading, setDocsLoading] = useState(true);
         const scrollRef = useRef<HTMLDivElement>(null);
 
         const thinkingSteps = [
@@ -46,6 +75,23 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             "Extracting key insights...",
             "Formulating answer..."
         ];
+
+        const fetchRecentDocs = async () => {
+            try {
+                setDocsLoading(true);
+                const docs = await api.getDocuments();
+                setRecentDocs(docs || []);
+            } catch {
+                // Silently fail — this is a non-critical feature
+                setRecentDocs([]);
+            } finally {
+                setDocsLoading(false);
+            }
+        };
+
+        useEffect(() => {
+            fetchRecentDocs();
+        }, []);
 
         useEffect(() => {
             let interval: NodeJS.Timeout;
@@ -80,6 +126,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             },
             setLoading: (loading: boolean) => {
                 setIsPending(loading);
+            },
+            refreshDocuments: () => {
+                fetchRecentDocs();
             },
         }));
 
@@ -156,26 +205,40 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                     ))}
                                 </div>
 
-                                {/* Recent Activity */}
+                                {/* Recent Activity — Dynamic */}
                                 <div className="pt-8 border-t border-card-border">
                                     <h3 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
                                         <History className="w-4 h-4" />
                                         Recently Processed
                                     </h3>
                                     <div className="space-y-2">
-                                        {[
-                                            { name: "Q3_Financial_Report.pdf", time: "2 hours ago" },
-                                            { name: "Employment_Contract_v2.pdf", time: "5 hours ago" },
-                                            { name: "Project_Proposal_Draft.pdf", time: "1 day ago" }
-                                        ].map((doc, idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
-                                                <div className="flex items-center gap-3">
-                                                    <FileText className="w-4 h-4 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
-                                                    <span className="text-sm text-foreground">{doc.name}</span>
-                                                </div>
-                                                <span className="text-xs text-muted-foreground font-mono">{doc.time}</span>
+                                        {docsLoading ? (
+                                            <div className="flex items-center justify-center py-6">
+                                                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground ml-2">Loading documents...</span>
                                             </div>
-                                        ))}
+                                        ) : recentDocs.length === 0 ? (
+                                            <div className="text-center py-6">
+                                                <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                                                <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
+                                                <p className="text-xs text-muted-foreground/60 mt-1">Upload a PDF to get started!</p>
+                                            </div>
+                                        ) : (
+                                            recentDocs.map((doc) => (
+                                                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+                                                    <div className="flex items-center gap-3">
+                                                        <FileText className="w-4 h-4 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
+                                                        <span className="text-sm text-foreground">{doc.filename}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {doc.size_bytes && (
+                                                            <span className="text-[10px] text-muted-foreground/60 font-mono">{formatFileSize(doc.size_bytes)}</span>
+                                                        )}
+                                                        <span className="text-xs text-muted-foreground font-mono">{formatTimeAgo(doc.created_at)}</span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
 
