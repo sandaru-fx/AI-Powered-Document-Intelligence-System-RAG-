@@ -1,5 +1,5 @@
-from app.services.rag_service import rag_service
-from app.api.v1.endpoints import router
+from backend.app.services.rag_service import rag_service
+from backend.app.api.v1.endpoints import router
 import asyncio
 
 async def test_rag():
