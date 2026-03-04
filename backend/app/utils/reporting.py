@@ -1,75 +1,186 @@
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.colors import HexColor
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.colors import HexColor, white, slategrey
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.units import inch
 import io
+import re
+from datetime import datetime
 
-def generate_session_report(session_title, messages):
-    """Generates a professional PDF report from a list of chat messages."""
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
-    styles = getSampleStyleSheet()
-    
-    # Custom Styles
-    title_style = ParagraphStyle(
-        'MainTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=HexColor('#6366f1'), # Brand Indigo
-        alignment=TA_CENTER,
-        spaceAfter=20
-    )
-    
-    bubble_user = ParagraphStyle(
-        'UserMessage',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=HexColor('#374151'),
-        leftIndent=20,
-        spaceBefore=10
-    )
-    
-    bubble_ai = ParagraphStyle(
-        'AssistantMessage',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=HexColor('#1f2937'),
-        backgroundColor=HexColor('#f3f4f6'),
-        borderPadding=5,
-        spaceBefore=15,
-        spaceAfter=15
-    )
-
-    content = []
-    
-    # Header
-    content.append(Paragraph("AI Document Intelligence Report", title_style))
-    content.append(Paragraph(f"Session: {session_title or 'Research Session'}", styles['Heading2']))
-    content.append(Spacer(1, 12))
-    
-    # Body
-    for msg in messages:
-        role = msg.get("role", "user")
-        text = msg.get("content", "")
+class PremiumReportGenerator:
+    def __init__(self, buffer, session_title, user_email):
+        self.buffer = buffer
+        self.session_title = session_title or "Research Case Study"
+        self.user_email = user_email or "Lead Researcher"
+        self.styles = getSampleStyleSheet()
+        self.brand_color = HexColor('#6366f1') # Indigo
+        self.text_color = HexColor('#1f2937') # Dark Gray
+        self.muted_color = HexColor('#6b7280') # Muted
         
-        if role == "user":
-            content.append(Paragraph(f"<b>Question:</b> {text}", bubble_user))
-        else:
-            content.append(Paragraph(f"<b>Researcher Insight:</b> {text}", bubble_ai))
+        self._setup_custom_styles()
+
+    def _setup_custom_styles(self):
+        self.styles.add(ParagraphStyle(
+            name='BrandTitle',
+            parent=self.styles['Heading1'],
+            fontSize=26,
+            textColor=self.brand_color,
+            alignment=TA_LEFT,
+            spaceAfter=2,
+            fontName='Helvetica-Bold'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='SessionTitle',
+            parent=self.styles['Heading2'],
+            fontSize=18,
+            textColor=self.text_color,
+            spaceBefore=20,
+            spaceAfter=10,
+            fontName='Helvetica-Bold'
+        ))
+
+        self.styles.add(ParagraphStyle(
+            name='MetaLabel',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            textColor=self.muted_color,
+            leading=12
+        ))
+
+        self.styles.add(ParagraphStyle(
+            name='ContentText',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            textColor=self.text_color,
+            leading=16,
+            spaceBefore=12,
+            alignment=TA_LEFT
+        ))
+
+        self.styles.add(ParagraphStyle(
+            name='InsightLabel',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            textColor=self.brand_color,
+            fontName='Helvetica-Bold',
+            spaceBefore=20,
+            leading=12
+        ))
+
+    def _parse_markdown(self, text):
+        # Basic markdown to ReportLab tags
+        text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text) # Bold
+        text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text) # Italic
+        # Bullet points: handle newlines and bullets
+        lines = text.split('\n')
+        formatted_lines = []
+        for line in lines:
+            if line.strip().startswith('-') or line.strip().startswith('*'):
+                content = line.strip()[1:].strip()
+                formatted_lines.append(f"&bull; {content}")
+            else:
+                formatted_lines.append(line)
+        return "<br/>".join(formatted_lines)
+
+    def _draw_header(self, canvas, doc):
+        canvas.saveState()
+        # Brand Line
+        canvas.setStrokeColor(self.brand_color)
+        canvas.setLineWidth(2)
+        canvas.line(doc.leftMargin, doc.height + doc.topMargin + 10, doc.width + doc.leftMargin, doc.height + doc.topMargin + 10)
+        
+        # Footer: Page Numbering
+        page_num = canvas.getPageNumber()
+        canvas.setFont('Helvetica', 9)
+        canvas.setFillColor(self.muted_color)
+        canvas.drawString(doc.leftMargin, 0.5 * inch, f"Generated by AIDoc Intel - Intelligence Laboratory")
+        canvas.drawRightString(doc.width + doc.leftMargin, 0.5 * inch, f"Page {page_num}")
+        canvas.restoreState()
+
+    def generate(self, messages):
+        doc = SimpleDocTemplate(
+            self.buffer, 
+            pagesize=letter,
+            topMargin=1.5 * inch,
+            bottomMargin=0.8 * inch,
+            leftMargin=0.8 * inch,
+            rightMargin=0.8 * inch
+        )
+        
+        elements = []
+
+        # --- Title Page Section ---
+        elements.append(Paragraph("AIDoc Intel", self.styles['BrandTitle']))
+        elements.append(Paragraph("Hybrid RAG Research Laboratory", self.styles['MetaLabel']))
+        elements.append(Spacer(1, 10))
+        
+        elements.append(Paragraph(self.session_title, self.styles['SessionTitle']))
+        
+        # Metadata Table
+        meta_data = [
+            [Paragraph(f"<b>Date:</b> {datetime.now().strftime('%Y-%m-%d')}", self.styles['MetaLabel']), 
+             Paragraph(f"<b>Lead Researcher:</b> {self.user_email}", self.styles['MetaLabel'])]
+        ]
+        t = Table(meta_data, colWidths=[2.5*inch, 4*inch])
+        t.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
+        elements.append(t)
+        
+        elements.append(Spacer(1, 30))
+        elements.append(Table([[white]], colWidths=[doc.width], rowHeights=[1], style=[('BACKGROUND', (0,0), (-1,-1), self.brand_color)])) # Divider
+        elements.append(Spacer(1, 20))
+
+        # --- Content Section ---
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
             
-            # Sources if available
-            sources = msg.get("sources", [])
-            if sources:
-                source_text = "<i>Sources: " + ", ".join(list(set([s['metadata']['source'] for s in sources]))) + "</i>"
-                content.append(Paragraph(source_text, styles['Italic']))
-        
-        content.append(Spacer(1, 10))
+            if role == "user":
+                elements.append(Paragraph("RESEARCH INQUIRY", self.styles['InsightLabel']))
+                elements.append(Paragraph(self._parse_markdown(content), self.styles['ContentText']))
+            else:
+                elements.append(Paragraph("AI SYNTHESIS & INSIGHTS", self.styles['InsightLabel']))
+                elements.append(Paragraph(self._parse_markdown(content), self.styles['ContentText']))
+                
+                # Sources Attribution Table
+                sources = msg.get("sources", [])
+                if sources:
+                    elements.append(Spacer(1, 10))
+                    source_data = [["Document Source", "Context Reference"]]
+                    
+                    # Deduplicate and format sources
+                    seen = set()
+                    unique_sources = []
+                    for s in sources:
+                        key = f"{s['metadata']['source']}p{s['metadata'].get('page', 0)}"
+                        if key not in seen:
+                            seen.add(key)
+                            pg = s['metadata'].get('page')
+                            ref = f"Page {pg}" if pg else "N/A"
+                            unique_sources.append([s['metadata']['source'], ref])
+                    
+                    # Style the Source Table
+                    st = Table(source_data + unique_sources, colWidths=[4*inch, 2*inch])
+                    st.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,0), self.brand_color),
+                        ('TEXTCOLOR', (0,0), (-1,0), white),
+                        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0,0), (-1,-1), 8),
+                        ('BOTTOMPADDING', (0,0), (-1,0), 6),
+                        ('BACKGROUND', (0,1), (-1,-1), HexColor('#f9fafb')),
+                        ('GRID', (0,0), (-1,-1), 0.5, HexColor('#e5e7eb')),
+                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                    ]))
+                    elements.append(st)
+                    elements.append(Spacer(1, 20))
 
-    # Footer
-    content.append(Spacer(1, 50))
-    content.append(Paragraph("Generated by AIDoc Intel - Project Researcher Laboratory", styles['Caption']))
+        doc.build(elements, onFirstPage=self._draw_header, onLaterPages=self._draw_header)
 
-    doc.build(content)
+def generate_session_report(session_title, messages, user_email="Researcher"):
+    """Entry point for report generation."""
+    buffer = io.BytesIO()
+    generator = PremiumReportGenerator(buffer, session_title, user_email)
+    generator.generate(messages)
     buffer.seek(0)
     return buffer

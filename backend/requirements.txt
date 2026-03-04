@@ -10,3 +10,4 @@ python-dotenv
 unstructured[pdf]
 rank_bm25
 supabase
+reportlab

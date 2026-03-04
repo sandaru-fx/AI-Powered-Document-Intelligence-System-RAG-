@@ -233,27 +233,44 @@ async def compare_documents(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/export/{session_id}")
-async def export_report(session_id: str):
+async def export_report(
+    session_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Generates a professional PDF report of the chat session."""
     from fastapi.responses import StreamingResponse
     from backend.app.utils.reporting import generate_session_report
     
     try:
-        # Fetch session title and history
-        session_res = supabase.table("chat_sessions").select("title").eq("id", session_id).single().execute()
-        res = supabase.table("chat_messages").select("*").eq("session_id", session_id).order("created_at").execute()
+        user_id = current_user.id
+        user_email = current_user.email
+        
+        # Fetch session title and history (ensure user owns the session)
+        session_res = supabase.table("chat_sessions") \
+            .select("title") \
+            .eq("id", session_id) \
+            .eq("user_id", user_id) \
+            .single() \
+            .execute()
+            
+        res = supabase.table("chat_messages") \
+            .select("*") \
+            .eq("session_id", session_id) \
+            .order("created_at") \
+            .execute()
         
         messages = res.data
         title = session_res.data.get("title") if session_res.data else "Research Report"
         
-        pdf_buffer = generate_session_report(title, messages)
+        pdf_buffer = generate_session_report(title, messages, user_email=user_email)
         
         return StreamingResponse(
             pdf_buffer, 
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=Project_Report_{session_id[:8]}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename=Research_Report_{session_id[:8]}.pdf"}
         )
     except Exception as e:
+        logger.error(f"Export failed for session {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/files/{filename}")
