@@ -11,3 +11,5 @@ unstructured[pdf]
 rank_bm25
 supabase
 reportlab
+pillow
+pypdf
