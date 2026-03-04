@@ -12,6 +12,7 @@ import { useState, useRef, useEffect } from "react";
 const PDFViewer = dynamic(() => import("@/components/PDFViewer"), {
   ssr: false,
 });
+import { DocumentLibrary } from "@/components/DocumentLibrary";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const [viewerConfig, setViewerConfig] = useState<{ url: string, page?: number }>({ url: "" });
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [comparisonDocs, setComparisonDocs] = useState<string[]>([]);
 
   // Header State
   const [projectName, setProjectName] = useState("New Research Project");
@@ -108,14 +111,29 @@ export default function Dashboard() {
     }
   }, [urlSessionId]);
 
+  const handleCompareSelection = (filenames: string[]) => {
+    setComparisonDocs(filenames);
+    setSelectedDocs(filenames);
+    setIsComparisonMode(true);
+    setShowLibrary(false);
+
+    // Auto-open viewer in split mode for comparison
+    setViewerOpen(true);
+
+    chatRef.current?.addMessage({
+      role: "assistant",
+      content: `I am now in **Expert Comparison Mode**. Analyzing documents: ${filenames.join(" and ")}. \n\nWhat specific aspects would you like me to compare? (e.g. Terms, Risks, Pricing)`
+    });
+  };
+
   const handleSendMessage = async (question: string) => {
     if (!chatRef.current) return;
 
     chatRef.current.setLoading(true);
 
     try {
-      if (isComparisonMode && selectedDocs.length > 0) {
-        const response = await api.compareDocs(selectedDocs, question);
+      if (isComparisonMode && comparisonDocs.length > 0) {
+        const response = await api.compareDocs(comparisonDocs, question);
         chatRef.current.addMessage({
           role: "assistant",
           content: response.analysis,
@@ -224,7 +242,14 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 bg-background p-1.5 rounded-xl border border-card-border shadow-sm">
 
             <button
-              onClick={() => setIsComparisonMode(!isComparisonMode)}
+              onClick={() => {
+                if (isComparisonMode) {
+                  setIsComparisonMode(false);
+                  setComparisonDocs([]);
+                } else {
+                  setShowLibrary(true);
+                }
+              }}
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
                 isComparisonMode
@@ -233,7 +258,7 @@ export default function Dashboard() {
               )}
             >
               <Sparkles className={cn("w-4 h-4", isComparisonMode ? "text-white animate-pulse" : "text-indigo-500")} />
-              {isComparisonMode ? "Expert Mode" : "Compare"}
+              {isComparisonMode ? "Exit Expert Mode" : "Compare"}
             </button>
 
             <div className="h-6 w-[1px] bg-card-border mx-1" />
@@ -271,23 +296,52 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Pane: PDF Viewer (Split View) */}
+          {/* Right Pane: PDF Viewer (Split/Comparison View) */}
           <div className={cn(
             "border-l border-white/5 bg-[#0a0a0c] transition-all duration-300 ease-in-out flex flex-col",
-            viewerOpen ? "w-1/2 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-full absolute right-0 h-full overflow-hidden"
+            viewerOpen ? (isComparisonMode && comparisonDocs.length > 1 ? "w-[65%]" : "w-1/2") : "w-0 opacity-0 translate-x-full absolute right-0 h-full overflow-hidden"
           )}>
             {viewerOpen && (
-              <PDFViewer
-                url={viewerConfig.url}
-                initialPage={viewerConfig.page}
-                onClose={() => setViewerOpen(false)}
-                isInline={true}
-              />
+              <div className="flex-1 flex overflow-hidden h-full">
+                {isComparisonMode && comparisonDocs.length > 1 ? (
+                  <>
+                    <div className="flex-1 border-r border-white/5 h-full overflow-hidden">
+                      <PDFViewer
+                        url={`${process.env.NEXT_PUBLIC_API_URL}/files/${comparisonDocs[0]}`}
+                        onClose={() => setViewerOpen(false)}
+                        isInline={true}
+                      />
+                    </div>
+                    <div className="flex-1 h-full overflow-hidden">
+                      <PDFViewer
+                        url={`${process.env.NEXT_PUBLIC_API_URL}/files/${comparisonDocs[1]}`}
+                        onClose={() => setViewerOpen(false)}
+                        isInline={true}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <PDFViewer
+                    url={viewerConfig.url}
+                    initialPage={viewerConfig.page}
+                    onClose={() => setViewerOpen(false)}
+                    isInline={true}
+                  />
+                )}
+              </div>
             )}
           </div>
 
         </div>
       </div>
+
+      {showLibrary && (
+        <DocumentLibrary
+          onClose={() => setShowLibrary(false)}
+          onCompare={handleCompareSelection}
+          maxSelection={2}
+        />
+      )}
     </main>
   );
 }
