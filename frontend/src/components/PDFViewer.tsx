@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
+import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import { X } from 'lucide-react';
@@ -16,6 +17,24 @@ interface PDFViewerProps {
 
 export default function PDFViewer({ url, onClose, initialPage, isInline = false }: PDFViewerProps) {
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
+    const pageNavigationPluginInstance = pageNavigationPlugin();
+    const { jumpToPage } = pageNavigationPluginInstance;
+
+    // Track whether it's the initial render so we don't double-jump on mount
+    const isFirstRender = useRef(true);
+
+    // Imperatively jump to the target page whenever `initialPage` changes
+    useEffect(() => {
+        if (isFirstRender.current) {
+            // On the first render the Viewer handles initialPage itself
+            isFirstRender.current = false;
+            return;
+        }
+        if (initialPage && initialPage > 0) {
+            // Viewer uses 0-indexed pages internally; our prop is 1-indexed
+            jumpToPage(initialPage - 1);
+        }
+    }, [initialPage]);
 
     const containerClasses = isInline
         ? "w-full h-full bg-background border-l border-card-border flex flex-col"
@@ -33,6 +52,11 @@ export default function PDFViewer({ url, onClose, initialPage, isInline = false 
                     <h3 className="text-foreground font-medium flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
                         Document Inspector
+                        {initialPage && (
+                            <span className="ml-2 text-xs font-normal text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                                Page {initialPage}
+                            </span>
+                        )}
                     </h3>
                     <button
                         onClick={onClose}
@@ -48,7 +72,7 @@ export default function PDFViewer({ url, onClose, initialPage, isInline = false 
                     <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                         <Viewer
                             fileUrl={url}
-                            plugins={[defaultLayoutPluginInstance]}
+                            plugins={[defaultLayoutPluginInstance, pageNavigationPluginInstance]}
                             initialPage={initialPage ? initialPage - 1 : 0}
                         />
                     </Worker>

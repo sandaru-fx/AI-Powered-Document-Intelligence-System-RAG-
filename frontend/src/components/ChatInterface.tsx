@@ -273,20 +273,37 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                                         {msg.content}
                                     </div>
 
-                                    {msg.sources && msg.sources.length > 0 && (
-                                        <div className="mt-4 flex flex-wrap gap-2">
-                                            {msg.sources.map((source, sIdx) => (
-                                                <button
-                                                    key={sIdx}
-                                                    onClick={() => onSourceClick?.(source.metadata.source, source.metadata.page)}
-                                                    className="text-[10px] px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-1 group"
-                                                >
-                                                    <span className="w-1 h-1 rounded-full bg-indigo-500 group-hover:animate-ping" />
-                                                    {source.metadata.source} {source.metadata.page ? `(p. ${source.metadata.page})` : ''}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {msg.sources && msg.sources.length > 0 && (() => {
+                                        // Deduplicate sources by (filename, page) to avoid repeated pills
+                                        const seen = new Set<string>();
+                                        const uniqueSources = msg.sources.filter((source) => {
+                                            const key = `${source.metadata.source}::${source.metadata.page ?? 0}`;
+                                            if (seen.has(key)) return false;
+                                            seen.add(key);
+                                            return true;
+                                        });
+                                        return (
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                <span className="text-[10px] text-muted-foreground self-center mr-1 font-medium">Sources:</span>
+                                                {uniqueSources.map((source, sIdx) => (
+                                                    <button
+                                                        key={sIdx}
+                                                        onClick={() => onSourceClick?.(source.metadata.source, source.metadata.page)}
+                                                        title={source.content.slice(0, 200)}
+                                                        className="text-[10px] px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all hover:scale-105 flex items-center gap-1.5 group cursor-pointer"
+                                                    >
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 group-hover:animate-ping shrink-0" />
+                                                        <span className="font-medium truncate max-w-[120px]" title={source.metadata.source}>
+                                                            {source.metadata.source}
+                                                        </span>
+                                                        {source.metadata.page && (
+                                                            <span className="opacity-70 shrink-0">p.{source.metadata.page}</span>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </motion.div>
                         ))}

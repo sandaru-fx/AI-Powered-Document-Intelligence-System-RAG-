@@ -201,7 +201,14 @@ class RAGService:
         return {
             "answer": result["result"],
             "sources": [
-                {"content": doc.page_content, "metadata": doc.metadata} 
+                {
+                    "content": doc.page_content,
+                    "metadata": {
+                        **doc.metadata,
+                        # Normalize PyPDFLoader's 0-indexed page to 1-indexed
+                        "page": doc.metadata.get("page", 0) + 1
+                    }
+                }
                 for doc in result["source_documents"]
             ]
         }
@@ -245,7 +252,14 @@ class RAGService:
         return {
             "analysis": result["result"],
             "sources": [
-                {"content": doc.page_content, "metadata": doc.metadata} 
+                {
+                    "content": doc.page_content,
+                    "metadata": {
+                        **doc.metadata,
+                        # Normalize PyPDFLoader's 0-indexed page to 1-indexed
+                        "page": doc.metadata.get("page", 0) + 1
+                    }
+                }
                 for doc in result["source_documents"]
             ]
         }
