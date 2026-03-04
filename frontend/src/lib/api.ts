@@ -53,5 +53,20 @@ export const api = {
     getDocuments: async () => {
         const response = await instance.get("/documents");
         return response.data;
+    },
+
+    getSessions: async () => {
+        const response = await instance.get("/sessions");
+        return response.data;
+    },
+
+    updateSessionTitle: async (sessionId: string, title: string) => {
+        const response = await instance.patch(`/sessions/${sessionId}`, { title });
+        return response.data;
+    },
+
+    deleteSession: async (sessionId: string) => {
+        const response = await instance.delete(`/sessions/${sessionId}`);
+        return response.data;
     }
 };

@@ -30,6 +30,9 @@ class CompareRequest(BaseModel):
     filenames: list[str]
     aspect: str = "general"
 
+class UpdateSessionTitle(BaseModel):
+    title: str
+
 @router.post("/upload")
 async def upload_documents(
     files: list[UploadFile] = File(...),
@@ -158,6 +161,59 @@ async def get_history(session_id: str):
         res = supabase.table("chat_messages").select("*").eq("session_id", session_id).order("created_at").execute()
         return res.data
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sessions")
+async def get_sessions(current_user: dict = Depends(get_current_user)):
+    """Returns all chat sessions for the authenticated user."""
+    try:
+        user_id = current_user.id
+        res = supabase.table("chat_sessions") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .execute()
+        return res.data
+    except Exception as e:
+        logger.error(f"Failed to fetch sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/sessions/{session_id}")
+async def update_session_title(
+    session_id: str,
+    request: UpdateSessionTitle,
+    current_user: dict = Depends(get_current_user)
+):
+    """Updates the title of a specific chat session."""
+    try:
+        user_id = current_user.id
+        res = supabase.table("chat_sessions") \
+            .update({"title": request.title}) \
+            .eq("id", session_id) \
+            .eq("user_id", user_id) \
+            .execute()
+        return res.data
+    except Exception as e:
+        logger.error(f"Failed to update session title: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(
+    session_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Deletes a chat session and all its messages."""
+    try:
+        user_id = current_user.id
+        # Messages will be deleted automatically due to ON DELETE CASCADE
+        res = supabase.table("chat_sessions") \
+            .delete() \
+            .eq("id", session_id) \
+            .eq("user_id", user_id) \
+            .execute()
+        return {"status": "success", "message": "Session deleted"}
+    except Exception as e:
+        logger.error(f"Failed to delete session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/compare")

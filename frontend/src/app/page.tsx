@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ChatInterface, ChatInterfaceHandle } from "@/components/ChatInterface";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
 const PDFViewer = dynamic(() => import("@/components/PDFViewer"), {
@@ -14,10 +15,13 @@ const PDFViewer = dynamic(() => import("@/components/PDFViewer"), {
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-import { cn, generateUUID } from "@/lib/utils"; // Assuming cn utility is available
+import { cn, generateUUID } from "@/lib/utils";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlSessionId = searchParams.get("session");
 
   const chatRef = useRef<ChatInterfaceHandle>(null);
   const [sessionId, setSessionId] = useState("");
@@ -38,15 +42,71 @@ export default function Dashboard() {
     setIsEditingName(true);
   };
 
-  const saveName = () => {
-    if (tempName.trim()) setProjectName(tempName);
+  const saveName = async () => {
+    if (tempName.trim()) {
+      setProjectName(tempName);
+      if (sessionId) {
+        try {
+          await api.updateSessionTitle(sessionId, tempName);
+        } catch (error) {
+          console.error("Failed to sync session title", error);
+        }
+      }
+    }
     setIsEditingName(false);
   };
 
+  const handleResetSession = () => {
+    const newId = generateUUID();
+    setSessionId(newId);
+    setProjectName("New Research Project");
+    chatRef.current?.clearChat();
+    router.push("/");
+  };
 
+  const loadHistory = async (id: string) => {
+    if (!chatRef.current) return;
+    try {
+      chatRef.current.setLoading(true);
+      const history = await api.getHistory(id);
+
+      // Attempt to find session title
+      const sessions = await api.getSessions();
+      const currentSession = sessions.find((s: any) => s.id === id);
+      if (currentSession?.title) {
+        setProjectName(currentSession.title);
+      }
+
+      chatRef.current.setMessages(history.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        sources: msg.sources
+      })));
+    } catch (error) {
+      console.error("Failed to load history", error);
+    } finally {
+      chatRef.current.setLoading(false);
+    }
+  };
+
+  // Auth Guard
   useEffect(() => {
-    setSessionId(generateUUID());
-  }, []);
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  // Session Initialization & Sync
+  useEffect(() => {
+    if (urlSessionId) {
+      setSessionId(urlSessionId);
+      loadHistory(urlSessionId);
+    } else if (!sessionId) {
+      setSessionId(generateUUID());
+      setProjectName("New Research Project");
+      chatRef.current?.clearChat();
+    }
+  }, [urlSessionId]);
 
   const handleSendMessage = async (question: string) => {
     if (!chatRef.current) return;
@@ -101,9 +161,20 @@ export default function Dashboard() {
     }
   };
 
+  if (loading || !user) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse font-medium">Initializing Security Protocol...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="flex h-screen bg-background overflow-hidden transition-colors duration-300">
-      <Sidebar />
+      <Sidebar activeSessionId={sessionId} onResetSession={handleResetSession} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 border-b border-card-border bg-card-bg/80 backdrop-blur-xl flex items-center justify-between px-6 z-10 sticky top-0 transition-colors duration-300">

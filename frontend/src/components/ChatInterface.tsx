@@ -30,14 +30,17 @@ interface RecentDocument {
 
 export interface ChatInterfaceHandle {
     addMessage: (message: Message) => void;
+    setMessages: (messages: Message[]) => void;
     setLoading: (loading: boolean) => void;
     refreshDocuments: () => void;
+    clearChat: () => void;
 }
 
 interface ChatInterfaceProps {
     onSendMessage: (message: string) => void;
     onSourceClick?: (source: string, page?: number) => void;
     activeDocument?: string;
+    initialMessages?: Message[];
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -61,7 +64,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(
-    ({ onSendMessage, onSourceClick, activeDocument }, ref) => {
+    ({ onSendMessage, onSourceClick, activeDocument, initialMessages }, ref) => {
         const [messages, setMessages] = useState<Message[]>([]);
         const [input, setInput] = useState("");
         const [isPending, setIsPending] = useState(false);
@@ -120,9 +123,18 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             setInput("");
         };
 
+        useEffect(() => {
+            if (initialMessages) {
+                setMessages(initialMessages);
+            }
+        }, [initialMessages]);
+
         useImperativeHandle(ref, () => ({
             addMessage: (message: Message) => {
                 setMessages((prev) => [...prev, message]);
+            },
+            setMessages: (newMessages: Message[]) => {
+                setMessages(newMessages);
             },
             setLoading: (loading: boolean) => {
                 setIsPending(loading);
@@ -130,6 +142,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             refreshDocuments: () => {
                 fetchRecentDocs();
             },
+            clearChat: () => {
+                setMessages([]);
+            }
         }));
 
         return (
