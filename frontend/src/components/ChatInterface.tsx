@@ -30,6 +30,8 @@ interface RecentDocument {
 
 export interface ChatInterfaceHandle {
     addMessage: (message: Message) => void;
+    updateAssistantMessage: (content: string, sources?: Source[]) => void;
+    appendAssistantToken: (token: string) => void;
     setMessages: (messages: Message[]) => void;
     setLoading: (loading: boolean) => void;
     refreshDocuments: () => void;
@@ -132,6 +134,30 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         useImperativeHandle(ref, () => ({
             addMessage: (message: Message) => {
                 setMessages((prev) => [...prev, message]);
+            },
+            updateAssistantMessage: (content: string, sources?: Source[]) => {
+                setMessages((prev) => {
+                    const last = prev[prev.length - 1];
+                    if (last && last.role === 'assistant') {
+                        const newMsgs = [...prev];
+                        newMsgs[newMsgs.length - 1] = { ...last, content, sources };
+                        return newMsgs;
+                    }
+                    return prev;
+                });
+            },
+            appendAssistantToken: (token: string) => {
+                setMessages((prev) => {
+                    const last = prev[prev.length - 1];
+                    if (last && last.role === 'assistant') {
+                        const newMsgs = [...prev];
+                        newMsgs[newMsgs.length - 1] = { ...last, content: last.content + token };
+                        return newMsgs;
+                    } else {
+                        // Create new assistant message if it doesn't exist
+                        return [...prev, { role: 'assistant', content: token }];
+                    }
+                });
             },
             setMessages: (newMessages: Message[]) => {
                 setMessages(newMessages);

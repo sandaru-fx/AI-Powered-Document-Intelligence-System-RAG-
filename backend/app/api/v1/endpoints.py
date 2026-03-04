@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from backend.app.services.rag_service import rag_service
 from backend.app.api.v1.auth import get_current_user, supabase
 from typing import Optional
@@ -150,6 +151,50 @@ async def query_documents(
             }).execute()
             
         return response
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/query/stream")
+async def query_documents_stream(
+    request: QueryRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        user_id = current_user.id
+        
+        # Log User message to Supabase immediately
+        if request.session_id:
+            supabase.table("chat_messages").insert({
+                "session_id": request.session_id,
+                "role": "user",
+                "content": request.question
+            }).execute()
+
+        async def event_generator():
+            full_answer = ""
+            sources = []
+            
+            async for chunk_json in rag_service.stream_query(user_id, request.question):
+                chunk = json.loads(chunk_json)
+                if chunk["type"] == "token":
+                    full_answer += chunk["content"]
+                    yield f"data: {chunk_json}\n\n"
+                elif chunk["type"] == "sources":
+                    sources = chunk["content"]
+                    yield f"data: {chunk_json}\n\n"
+            
+            # Log Assistant message to Supabase after stream finishes
+            if request.session_id and full_answer:
+                supabase.table("chat_messages").insert({
+                    "session_id": request.session_id,
+                    "role": "assistant",
+                    "content": full_answer,
+                    "sources": sources
+                }).execute()
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

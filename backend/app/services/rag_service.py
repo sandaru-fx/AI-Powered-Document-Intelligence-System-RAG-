@@ -12,6 +12,7 @@ from langchain.chains import RetrievalQA
 from langchain_core.messages import HumanMessage
 from langchain_core.documents import Document
 import shutil
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -284,5 +285,65 @@ class RAGService:
                 for doc in result["source_documents"]
             ]
         }
+
+    async def stream_query(self, user_id: str, question: str):
+        """Asynchronous generator to stream tokens and eventually source docs."""
+        vector_store = self.user_vector_stores.get(user_id)
+        
+        if not vector_store:
+            user_index_path = os.path.join(self.index_dir, str(user_id))
+            if os.path.exists(user_index_path):
+                vector_store = FAISS.load_local(
+                    user_index_path, 
+                    self.embeddings, 
+                    allow_dangerous_deserialization=True
+                )
+                self.user_vector_stores[user_id] = vector_store
+            else:
+                yield "Error: No indexed documents found. Please upload PDFs first."
+                return
+
+        bm25_retriever = self.user_bm25_retrievers.get(user_id)
+        if not bm25_retriever:
+            retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+        else:
+            retriever = EnsembleRetriever(
+                retrievers=[bm25_retriever, vector_store.as_retriever(search_kwargs={"k": 5})],
+                weights=[0.4, 0.6]
+            )
+
+        # 1. Retrieve first to get sources
+        docs = await retriever.ainvoke(question)
+        
+        # 2. Build context
+        context = "\n\n".join([d.page_content for d in docs])
+        prompt = f"""Use the following pieces of context to answer the question at the end. 
+        If you don't know the answer, just say that you don't know, don't try to make up an answer.
+        Use three sentences maximum and keep the answer as concise as possible.
+        
+        Context: {context}
+        
+        Question: {question}
+        
+        Helpful Answer:"""
+
+        # 3. Stream from LLM
+        # We assume self.llm is a ChatGoogleGenerativeAI instance which supports astream
+        async for chunk in self.llm.astream(prompt):
+            content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+            yield json.dumps({"type": "token", "content": content})
+
+        # 4. Yield sources at the end
+        sources = [
+            {
+                "content": doc.page_content,
+                "metadata": {
+                    **doc.metadata,
+                    "page": doc.metadata.get("page", 0) + 1
+                }
+            }
+            for doc in docs
+        ]
+        yield json.dumps({"type": "sources", "content": sources})
 
 rag_service = RAGService()

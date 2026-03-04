@@ -140,17 +140,21 @@ export default function Dashboard() {
           sources: response.sources,
         });
       } else {
-        const response = await api.queryDocs(question, sessionId);
-        chatRef.current.addMessage({
-          role: "assistant",
-          content: response.answer,
-          sources: response.sources,
+        // Use Streaming for standard queries
+        let fullContent = "";
+        await api.streamQueryDocs(question, sessionId, (chunk: any) => {
+          if (chunk.type === "token") {
+            fullContent += chunk.content;
+            chatRef.current?.appendAssistantToken(chunk.content);
+          } else if (chunk.type === "sources") {
+            chatRef.current?.updateAssistantMessage(fullContent, chunk.content);
+          }
         });
       }
     } catch (error: any) {
       chatRef.current.addMessage({
         role: "assistant",
-        content: `Error: ${error.response?.data?.detail || "Failed to get response from AI."}`,
+        content: `Error: ${error.message || "Failed to get response from AI."}`,
       });
     } finally {
       chatRef.current.setLoading(false);
